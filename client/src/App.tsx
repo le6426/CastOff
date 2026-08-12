@@ -1,14 +1,13 @@
-import { useState } from 'react'
-import './App.css'
-import SignUp from './signup.tsx'
+import { useState } from "react";
+import "./App.css";
+import Register from "./Register.tsx";
 
 function App() {
-
   return (
     <>
-    <SignUp></SignUp>
+      <Register />
     </>
-  )
+  );
 }
 
-export default App
+export default App;
