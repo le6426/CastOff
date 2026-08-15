@@ -7,14 +7,10 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Link } from "react-router-dom";
 
-const USER_REGEX = /^[A-z][A-z0-9-_]{3,23}$/;
-const PWD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%]).{8,24}$/;
-const REGISTER_URL = "/register";
-
-const Register = () => {
+const Login = () => {
   return (
     <div>
-      <h1>This is the Register Page</h1>
+      <h1>This is the Login Page</h1>
       <button>
         <Link to="/">Go to Home</Link>
       </button>
@@ -22,4 +18,4 @@ const Register = () => {
   );
 };
 
-export default Register;
+export default Login;
