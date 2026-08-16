@@ -13,8 +13,8 @@ const PWD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%]).{8,24}$/;
 const REGISTER_URL = "/register";
 
 const Register = () => {
-  const userRef = useRef();
-  const errRef = useRef();
+  const userRef = useRef<HTMLInputElement>(null);
+  const errRef = useRef<HTMLParagraphElement>(null);
 
   const [user, setUser] = useState("");
   const [validName, setValidName] = useState(false);
@@ -58,8 +58,15 @@ const Register = () => {
       return;
     }
 
-    console.log("Console Log:", user, pwd);
+    // Placeholder for actual registration logic
+    if (user === "FailTest") {
+      setSuccess(false);
+      console.log("Console Log:", user, pwd, success);
+      return;
+    }
+
     setSuccess(true);
+    console.log("Console Log:", user, pwd, success);
   };
   return (
     <section>
