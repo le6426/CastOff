@@ -58,16 +58,27 @@ const Register = () => {
       return;
     }
 
-    // Placeholder for actual registration logic
-    if (user === "FailTest") {
-      setSuccess(false);
-      console.log("Console Log:", user, pwd, success);
-      return;
-    }
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
-    setSuccess(true);
-    console.log("Console Log:", user, pwd, success);
+    try {
+      const response = await fetch(`${apiBaseUrl}/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username: user, password: pwd }),
+      });
+      if (response.ok) {
+        setSuccess(true);
+      } else {
+        setErrMsg("Username Taken");
+      }
+      // console.log("Response:", response);
+    } catch (error) {
+      console.error("Error:", error);
+    }
   };
+
   return (
     <section>
       <p
