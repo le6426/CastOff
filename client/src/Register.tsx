@@ -5,12 +5,11 @@ import {
   faInfoCircle,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "./Register.css";
 
 const USER_REGEX = /^[A-z][A-z0-9-_]{3,23}$/;
 const PWD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%]).{8,24}$/;
-const REGISTER_URL = "/register";
 
 const Register = () => {
   const userRef = useRef<HTMLInputElement>(null);
@@ -29,7 +28,8 @@ const Register = () => {
   const [matchFocus, setMatchFocus] = useState(false);
 
   const [errMsg, setErrMsg] = useState("");
-  const [success, setSuccess] = useState(false);
+
+  let navigate = useNavigate();
 
   useEffect(() => {
     userRef.current.focus();
@@ -68,14 +68,17 @@ const Register = () => {
         },
         body: JSON.stringify({ username: user, password: pwd }),
       });
-      if (response.ok) {
-        setSuccess(true);
-      } else {
-        setErrMsg("Username Taken");
-      }
+
       // console.log("Response:", response);
+
+      if (response.ok) {
+        navigate("/login");
+      } else {
+        const responseDetails = await response.json();
+        setErrMsg(responseDetails.detail);
+      }
     } catch (error) {
-      console.error("Error:", error);
+      setErrMsg("No response from server");
     }
   };
 
