@@ -1,3 +1,6 @@
+'''
+users.py
+'''
 from app.config.database import get_connection
 
 def get_user_by_username(username: str):
@@ -17,3 +20,13 @@ def create_user(username: str, password_hash: str):
                 (username, password_hash)
             )
         conn.commit()
+
+def get_password_hash_by_username(username: str):
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT password_hash FROM users WHERE username = %s",
+                (username,)
+            )
+            result = cur.fetchone()
+            return result[0] if result else None

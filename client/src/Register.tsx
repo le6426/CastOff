@@ -32,7 +32,7 @@ const Register = () => {
   let navigate = useNavigate();
 
   useEffect(() => {
-    userRef.current.focus();
+    userRef.current?.focus();
   }, []);
 
   useEffect(() => {
@@ -48,7 +48,7 @@ const Register = () => {
     setErrMsg("");
   }, [user, pwd, matchPwd]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     // if button enabled with JS hack
     const v1 = USER_REGEX.test(user);
