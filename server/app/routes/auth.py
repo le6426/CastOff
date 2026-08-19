@@ -1,10 +1,12 @@
 '''
 auth.py
 '''
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Cookie
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from typing import Annotated
 import bcrypt
-from app.routes.users import get_user_by_username, create_user, get_password_hash_by_username
+from app.routes.users import get_user_by_username, create_user, get_password_hash_by_username, get_user_id_by_username, create_session
 
 router = APIRouter()
 
@@ -35,6 +37,14 @@ def login_user(payload: AuthorizationRequest):
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
     if bcrypt.checkpw(payload.password.encode("utf-8"), hashed_password.encode("utf-8")):
-        return {"message": "Login successful"}
+        user_id = get_user_id_by_username(payload.username)
+        session_id = create_session(user_id)
+        response = JSONResponse(content={"message": "Login successful"})
+        response.set_cookie(key="session_id", value=str(session_id), httponly=True)
+        return response
     else:
         raise HTTPException(status_code=401, detail="Invalid username or password")
+
+@router.get("/read_cookie")
+def read_cookie(session_id: Annotated[str | None, Cookie()] = None):
+    return {"session_id": session_id}

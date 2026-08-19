@@ -34,12 +34,21 @@ const Login = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ username: user, password: pwd }),
+        credentials: "include",
       });
 
       // console.log("Response:", response);
 
       if (response.ok) {
-        navigate("/");
+        fetch("http://localhost:8000/read_cookie", { credentials: "include" })
+          .then((response) => response.json())
+          .then((data) => {
+            console.log("Session ID from cookie:", data.session_id);
+          })
+          .catch((error) => {
+            console.error("Error reading cookie:", error);
+          });
+        // navigate("/");
       } else {
         const responseDetails = await response.json();
         setErrMsg(responseDetails.detail);
