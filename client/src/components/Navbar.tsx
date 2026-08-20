@@ -17,7 +17,6 @@ const Navbar = () => {
       if (response.ok) {
         const data = await response.json();
         setCurrentUser(data.session_user);
-        console.log("1", currentUser); // for dev
         setLoggedIn(true);
       } else {
         console.log("No response from server"); // for dev
@@ -28,18 +27,13 @@ const Navbar = () => {
 
   const handleLogOut = async () => {
     try {
-      const response = await fetch(`${apiBaseUrl}/logout`, {
+      await fetch(`${apiBaseUrl}/logout`, {
         method: "POST",
         credentials: "include",
       });
-
-      // console.log("Response:", response);
-
-      if (response.ok) {
-        setCurrentUser(null);
-        setLoggedIn(false);
-        window.location.href = "/";
-      }
+      setCurrentUser(null);
+      setLoggedIn(false);
+      window.location.href = "/";
     } catch (error) {
       console.log("No response from server");
     }
