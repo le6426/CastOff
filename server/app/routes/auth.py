@@ -7,7 +7,6 @@ from pydantic import BaseModel
 from typing import Annotated
 import bcrypt
 from app.routes.users import *
-from datetime import datetime, timedelta, timezone
 
 router = APIRouter()
 
@@ -60,7 +59,7 @@ def get_username(user_id: str):
 @router.get("/get_session")
 def get_session(session_id: Annotated[str | None, Cookie()] = None):
     session = get_session_by_session_id(session_id)
-    
+
     if session is None:
         raise HTTPException(status_code=401, detail="Session not found")
 

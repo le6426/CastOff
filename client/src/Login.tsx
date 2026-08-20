@@ -40,7 +40,8 @@ const Login = () => {
       // console.log("Response:", response);
 
       if (response.ok) {
-        navigate("/");
+        // navigate("/");
+        window.location.href = "/";
       } else {
         const responseDetails = await response.json();
         setErrMsg(responseDetails.detail);

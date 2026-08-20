@@ -5,26 +5,47 @@ import App from "./App.tsx";
 import Register from "./Register.tsx";
 import Login from "./Login.tsx";
 import NotFoundPage from "./NotFoundPage.tsx";
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
+import Nav from "./components/Navbar.tsx";
 
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <App />,
-  },
-  {
-    path: "/register",
-    element: <Register />,
-  },
-  {
-    path: "/login",
-    element: <Login />,
+    element: <LayoutComponent />,
+    children: [
+      {
+        index: true,
+        element: <App />,
+      },
+      {
+        path: "/register",
+        element: <Register />,
+      },
+      {
+        path: "/login",
+        element: <Login />,
+      },
+    ],
   },
   {
     path: "*",
     element: <NotFoundPage />,
   },
 ]);
+
+function LayoutComponent() {
+  return (
+    <div>
+      <header>
+        <Nav />
+      </header>
+      <main>
+        <Outlet />
+      </main>
+      <footer></footer>
+    </div>
+  );
+}
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
