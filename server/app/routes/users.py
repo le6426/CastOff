@@ -86,7 +86,6 @@ def delete_session(session_id: str):
 def is_session_valid(session=None):
     if session is None:
         return False
-    expires_at_sql = session[2]
-    expires_at = expires_at_sql.replace(tzinfo=timezone.utc)  # Ensure the datetime is timezone-aware
+    expires_at = session[2]
     current_time = datetime.now(timezone.utc)
     return current_time < expires_at
