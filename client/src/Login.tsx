@@ -40,15 +40,7 @@ const Login = () => {
       // console.log("Response:", response);
 
       if (response.ok) {
-        fetch("http://localhost:8000/read_cookie", { credentials: "include" })
-          .then((response) => response.json())
-          .then((data) => {
-            console.log("Session ID from cookie:", data.session_id);
-          })
-          .catch((error) => {
-            console.error("Error reading cookie:", error);
-          });
-        // navigate("/");
+        navigate("/");
       } else {
         const responseDetails = await response.json();
         setErrMsg(responseDetails.detail);

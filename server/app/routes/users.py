@@ -42,6 +42,16 @@ def get_user_id_by_username(username: str):
             result = cur.fetchone()
             return result[0] if result else None
 
+def get_username_by_user_id(user_id: str):
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT username FROM users WHERE id = %s",
+                (user_id,)
+            )
+            result = cur.fetchone()
+            return result[0] if result else None
+
 def create_session(user_id: str):
     with get_connection() as conn:
         with conn.cursor() as cur:
@@ -54,3 +64,29 @@ def create_session(user_id: str):
             session_id = cur.fetchone()[0]
         conn.commit()
     return session_id
+
+def get_session_by_session_id(session_id: str):
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT user_id, created_at, expires_at FROM sessions WHERE id = %s",
+                (session_id,)
+            )
+            return cur.fetchone()
+
+def delete_session(session_id: str):
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM sessions WHERE id = %s",
+                (session_id,)
+            )
+        conn.commit()
+
+def is_session_valid(session=None):
+    if session is None:
+        return False
+    expires_at_sql = session[2]
+    expires_at = expires_at_sql.replace(tzinfo=timezone.utc)  # Ensure the datetime is timezone-aware
+    current_time = datetime.now(timezone.utc)
+    return current_time < expires_at

@@ -6,7 +6,8 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Annotated
 import bcrypt
-from app.routes.users import get_user_by_username, create_user, get_password_hash_by_username, get_user_id_by_username, create_session
+from app.routes.users import *
+import uuid
 
 router = APIRouter()
 
@@ -48,3 +49,25 @@ def login_user(payload: AuthorizationRequest):
 @router.get("/read_cookie")
 def read_cookie(session_id: Annotated[str | None, Cookie()] = None):
     return {"session_id": session_id}
+
+@router.get("/get_username")
+def get_username(user_id: str):
+    username = get_username_by_user_id(user_id)
+    if username is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"username": username}
+
+@router.get("/get_session")
+def get_session(session_id: Annotated[str | None, Cookie()] = None):
+    session = get_session_by_session_id(session_id)
+
+    if session is None:
+        raise HTTPException(status_code=401, detail="Session not found")
+
+    if not is_session_valid(session):
+        delete_session(session_id)
+        raise HTTPException(status_code=401, detail="Session expired")
+
+    return {"session_user": get_username_by_user_id(session[0]),
+             "created_at": session[1], 
+             "expires_at": session[2]}
