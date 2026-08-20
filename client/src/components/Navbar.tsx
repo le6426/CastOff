@@ -26,6 +26,25 @@ const Navbar = () => {
     checkSession();
   }, []);
 
+  const handleLogOut = async () => {
+    try {
+      const response = await fetch(`${apiBaseUrl}/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+
+      // console.log("Response:", response);
+
+      if (response.ok) {
+        setCurrentUser(null);
+        setLoggedIn(false);
+        window.location.href = "/";
+      }
+    } catch (error) {
+      console.log("No response from server");
+    }
+  };
+
   return (
     <nav className="bg-slate-800">
       <div className="nav-brand">MyApp</div>
@@ -41,9 +60,7 @@ const Navbar = () => {
         </li>
         <li>
           {loggedIn ? (
-            <button>
-              <Link to="/">Log Out</Link>
-            </button>
+            <button onClick={handleLogOut}>Log Out</button>
           ) : (
             <button>
               <Link to="/register">Register</Link>

@@ -20,11 +20,9 @@ def register_user(payload: AuthorizationRequest):
     if user:
         raise HTTPException(status_code=400, detail="Username already taken")
 
-    # bcrypt works with bytes, not strings — so we encode the password first
     password_bytes = payload.password.encode("utf-8")
     hashed_password = bcrypt.hashpw(password_bytes, bcrypt.gensalt())
 
-    # hashed_password comes back as bytes — decode it to store as text in Postgres
     create_user(payload.username, hashed_password.decode("utf-8"))
 
     return {"message": "User registered successfully"}
@@ -49,13 +47,6 @@ def login_user(payload: AuthorizationRequest):
 def read_cookie(session_id: Annotated[str | None, Cookie()] = None):
     return {"session_id": session_id}
 
-@router.get("/get_username")
-def get_username(user_id: str):
-    username = get_username_by_user_id(user_id)
-    if username is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    return {"username": username}
-
 @router.get("/get_session")
 def get_session(session_id: Annotated[str | None, Cookie()] = None):
     session = get_session_by_session_id(session_id)
@@ -70,3 +61,14 @@ def get_session(session_id: Annotated[str | None, Cookie()] = None):
     return {"session_user": get_username_by_user_id(session[0]),
              "created_at": session[1], 
              "expires_at": session[2]}
+
+@router.post("/logout")
+def logout_user(session_id: Annotated[str | None, Cookie()] = None):
+
+    if session_id is None:
+       raise HTTPException(status_code=401, detail="Session already expired")
+    
+    response = JSONResponse(content={"message": "Logout successful"})
+    response.delete_cookie(key="session_id", httponly=True)
+    delete_session(session_id)
+    return response
