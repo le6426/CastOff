@@ -1,8 +1,10 @@
 '''
-users.py
+auth_actions.py
+SQL inquieries for users and sessions table
 '''
 from app.config.database import get_connection
 from datetime import datetime, timedelta, timezone
+from fastapi import APIRouter, HTTPException, Cookie, Depends
 
 def get_user_by_username(username: str):
     with get_connection() as conn:
@@ -89,3 +91,18 @@ def is_session_valid(session=None):
     expires_at = session[2]
     current_time = datetime.now(timezone.utc)
     return current_time < expires_at
+
+def get_session_by_session_id_helper(session_id):
+    session = get_session_by_session_id(session_id)
+
+    if session is None:
+        raise HTTPException(status_code=401, detail="Session not found")
+
+    if not is_session_valid(session):
+        delete_session(session_id)
+        raise HTTPException(status_code=401, detail="Session expired")
+
+    return {"session_userid": session[0],
+            "session_username": get_username_by_user_id(session[0]),
+             "created_at": session[1], 
+             "expires_at": session[2]}

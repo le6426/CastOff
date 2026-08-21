@@ -1,12 +1,12 @@
 '''
 auth.py
 '''
-from fastapi import APIRouter, HTTPException, Cookie
+from fastapi import APIRouter, HTTPException, Cookie, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Annotated
 import bcrypt
-from app.routes.users import *
+from app.routes.auth_actions import *
 
 router = APIRouter()
 
@@ -43,24 +43,14 @@ def login_user(payload: AuthorizationRequest):
     else:
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
-@router.get("/read_cookie")
+@router.get("/read_cookie") # for dev
 def read_cookie(session_id: Annotated[str | None, Cookie()] = None):
     return {"session_id": session_id}
 
+
 @router.get("/get_session")
 def get_session(session_id: Annotated[str | None, Cookie()] = None):
-    session = get_session_by_session_id(session_id)
-
-    if session is None:
-        raise HTTPException(status_code=401, detail="Session not found")
-
-    if not is_session_valid(session):
-        delete_session(session_id)
-        raise HTTPException(status_code=401, detail="Session expired")
-
-    return {"session_user": get_username_by_user_id(session[0]),
-             "created_at": session[1], 
-             "expires_at": session[2]}
+    return get_session_by_session_id_helper(session_id)
 
 @router.post("/logout")
 def logout_user(session_id: Annotated[str | None, Cookie()] = None):

@@ -1,7 +1,7 @@
 // Navbar.tsx
 
-import { useRef, useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 
 const Navbar = () => {
   const [loggedIn, setLoggedIn] = useState(false);
@@ -16,7 +16,7 @@ const Navbar = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setCurrentUser(data.session_user);
+        setCurrentUser(data.session_username);
         setLoggedIn(true);
       } else {
         console.log("No response from server"); // for dev
@@ -41,11 +41,16 @@ const Navbar = () => {
 
   return (
     <nav className="bg-slate-800">
-      <div className="nav-brand">MyApp</div>
+      <div className="nav-brand">
+        {" "}
+        <button>
+          <Link to="/">Omoggle</Link>
+        </button>
+      </div>
       <ul className="nav-menu">
         <li>
           {loggedIn ? (
-            <a>Logged in as: {currentUser}</a>
+            <span>Logged in as: {currentUser}</span>
           ) : (
             <button>
               <Link to="/login">Log In</Link>

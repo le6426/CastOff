@@ -12,8 +12,6 @@ const Login = () => {
 
   const [errMsg, setErrMsg] = useState("");
 
-  let navigate = useNavigate();
-
   useEffect(() => {
     userRef.current?.focus();
   }, []);
