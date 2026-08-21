@@ -7,6 +7,7 @@ import Login from "./Login.tsx";
 import NotFoundPage from "./NotFoundPage.tsx";
 import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
 import Nav from "./components/Navbar.tsx";
+import Room from "./Room.tsx";
 
 const router = createBrowserRouter([
   {
@@ -24,6 +25,10 @@ const router = createBrowserRouter([
       {
         path: "/login",
         element: <Login />,
+      },
+      {
+        path: "/room/:roomID",
+        element: <Room />,
       },
     ],
   },

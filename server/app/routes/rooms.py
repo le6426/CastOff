@@ -35,3 +35,16 @@ def join_room(room_id: str, session_id: Annotated[str | None, Cookie()] = None):
     return {"message": "Successfully joined room",
             "room_id": room_id,            
             }
+
+@router.get("/rooms/{room_id}")
+def get_room_route(room_id: str):
+    room = get_room(room_id)
+    is_valid = is_room_valid(room)
+
+    if not is_room_valid(room):
+        raise HTTPException(status_code=404, detail="Room is full or expired")
+    
+    return {"creator_id": room[0], 
+            "joined_user_id": room[1], 
+            "created_at": room[2], 
+            "expires_at": room[3]}
