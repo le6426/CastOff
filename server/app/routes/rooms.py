@@ -24,7 +24,10 @@ def join_room(room_id: str, session_id: Annotated[str | None, Cookie()] = None):
     room = get_room(room_id)
 
     if not is_room_valid(room):
-        raise HTTPException(status_code=404, detail="Room is full or expired")
+        raise HTTPException(status_code=404, detail="Room doesn't exist or is expired")
+
+    if not is_room_not_full(room):
+        raise HTTPException(status_code=400, detail="Room is full")
 
     creator_id = room[0]
 
@@ -43,7 +46,8 @@ def get_room_route(room_id: str):
     if not is_room_valid(room):
         raise HTTPException(status_code=404, detail="Room is full or expired")
     
-    return {"creator_id": room[0], 
+    return {"creator_id": room[0],
+            "creator_user": get_username_by_user_id(room[0]),
             "joined_user_id": room[1], 
             "created_at": room[2], 
             "expires_at": room[3]}

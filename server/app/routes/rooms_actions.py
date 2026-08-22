@@ -28,15 +28,20 @@ def get_room(room_id: str):
             )
             return cur.fetchone()
 
+# Checks for existence, and expiration
 def is_room_valid(room = None):
     if room is None:
-        return False
-    joined_user_id = room[1]
-    if joined_user_id is not None:
         return False
     expires_at = room[3]
     current_time = datetime.now(timezone.utc)
     return current_time < expires_at
+
+# Checks for just fullness
+def is_room_not_full(room = None):
+    joined_user_id = room[1]
+    if joined_user_id is not None:
+        return False
+    return True
 
 def join_room_action(room_id: str, joiner_id: str):
     with get_connection() as conn:
