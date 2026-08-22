@@ -58,8 +58,11 @@ def leave_room(room_id: str, session_id: Annotated[str | None, Cookie()] = None)
     user_id = session["session_userid"]
     room = get_room(room_id)
 
-    delete_columnn_message = delete_user_column(room_id, user_id, room)
+    delete_column_message = delete_user_column(room_id, user_id, room)
     delete_room_message = delete_room_if_empty(room_id)
 
-    return {"delete_columnn_message": delete_columnn_message, 
+    if delete_column_message != "Column successfully deleted":
+        raise HTTPException(status_code=404, detail="User not in the room")
+
+    return {"delete_columnn_message": delete_column_message, 
             "delete_room_message": delete_room_message}

@@ -75,7 +75,25 @@ const Room = () => {
     initializeRoom();
   }, []);
 
-  //   setIsHost(currentUserID == roomCreatorID);
+  const handleLeaveRoom = () => {
+    const leaveRoom = async () => {
+      const leave_room_response = await fetch(
+        `${apiBaseUrl}/leave_room/${roomID}`,
+        {
+          method: "POST",
+          credentials: "include",
+        },
+      );
+
+      if (leave_room_response.ok) {
+        window.location.href = "/";
+      } else {
+        const errorData = await leave_room_response.json();
+        setJoinError(errorData.detail);
+      }
+    };
+    leaveRoom();
+  };
 
   return (
     <>
@@ -103,7 +121,7 @@ const Room = () => {
           <button>
             <Link to="/">Go to Home</Link>
           </button>
-          <div>{<span>{joinError}</span>}</div>
+          <button onClick={handleLeaveRoom}>Leave Room</button>
         </div>
       )}
     </>
