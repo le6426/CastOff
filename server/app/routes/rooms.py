@@ -51,3 +51,15 @@ def get_room_route(room_id: str):
             "joined_user_id": room[1], 
             "created_at": room[2], 
             "expires_at": room[3]}
+
+@router.post("/leave_room/{room_id}")
+def leave_room(room_id: str, session_id: Annotated[str | None, Cookie()] = None):
+    session = get_session_by_session_id_helper(session_id)
+    user_id = session["session_userid"]
+    room = get_room(room_id)
+
+    delete_columnn_message = delete_user_column(room_id, user_id, room)
+    delete_room_message = delete_room_if_empty(room_id)
+
+    return {"delete_columnn_message": delete_columnn_message, 
+            "delete_room_message": delete_room_message}

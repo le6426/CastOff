@@ -60,12 +60,16 @@ const Room = () => {
                 };
                 joinRoomIfJoiner();
               }
+            } else {
+              const errorData = await get_room_response.json();
+              setJoinError(errorData.detail);
             }
           };
           checkRoom(session_data.session_userid);
         }
       } else {
-        console.log("No response from server"); // for dev
+        const errorData = await get_session_response.json();
+        setJoinError(errorData.detail);
       }
     };
     initializeRoom();
