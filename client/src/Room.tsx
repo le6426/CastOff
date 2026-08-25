@@ -5,6 +5,7 @@ import { Link, useParams } from "react-router-dom";
 const Room = () => {
   const [currentUser, setCurrentUser] = useState(``);
   const [roomCreatorUser, setRoomCreatorUser] = useState(``);
+  const [roomJoinerUser, setRoomJoinerUser] = useState(``);
   const [isHost, setIsHost] = useState(false);
   const [inviteLink, setInviteLink] = useState(``);
   const [joinError, setJoinError] = useState(``);
@@ -22,14 +23,17 @@ const Room = () => {
 
   const isInitializingRef = useRef(false);
 
+  const readyForIceCandidates = useRef(false);
+  const pendingIceCandidates = useRef<RTCIceCandidate[]>([]);
+
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
   const wsBaseUrl = import.meta.env.VITE_WS_BASE_URL;
   const stunServer1 = import.meta.env.VITE_STUN_SERVER_1;
 
   let params = useParams();
   const roomID = params.roomID;
-  //   console.log("ROOM ID:", roomID);
 
+  // Initializing the room (getting: session, room info, joining room)
   useEffect(() => {
     const initializeRoom = async () => {
       if (!roomID || isInitializingRef.current) return;
@@ -93,7 +97,7 @@ const Room = () => {
     initializeRoom();
   }, [roomID]);
 
-  // Capture Camera & Microphone Media Stream
+  // GetUserMedia (video/audio)
   useEffect(() => {
     if (!readyForConnection) return;
 
@@ -121,7 +125,7 @@ const Room = () => {
 
     startLocalMedia();
 
-    // Cleanup: Turn off camera & mic hardware when leaving room
+    // Turn off camera & mic hardware when leaving room for cleanup
     return () => {
       if (stream) {
         stream.getTracks().forEach((track) => track.stop());
@@ -129,7 +133,7 @@ const Room = () => {
     };
   }, [readyForConnection, isHost]);
 
-  // Setup RTCPeerConnection and WebSocket in a single lifecycle
+  // Setup RTCPeerConnection and WebSocket
   useEffect(() => {
     if (!roomID || !readyForConnection || !isMediaReady) return;
 
@@ -140,7 +144,7 @@ const Room = () => {
     const pc = new RTCPeerConnection(rtcConfig);
     peerConnectionRef.current = pc;
 
-    // 2. Attach local media tracks BEFORE handling any signaling
+    // 2. Attach local media tracks before handling any signaling
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((track) => {
         pc.addTrack(track, localStreamRef.current!);
@@ -148,8 +152,10 @@ const Room = () => {
     }
 
     // 3. Set up remote track handler
+    // Event listener that triggers when other browser
+    // sends its video or audio streams
     pc.ontrack = (event) => {
-      console.log("📥 Received remote track:", event.streams[0]);
+      console.log("Received remote track:", event.streams[0]);
       if (isHost && joinerVideoRef.current) {
         joinerVideoRef.current.srcObject = event.streams[0];
       } else if (!isHost && hostVideoRef.current) {
@@ -157,7 +163,7 @@ const Room = () => {
       }
     };
 
-    // 4. Connect WebSocket after PC is fully prepared
+    // 4. Connect WebSocket after PeerConnection (pc) is fully prepared
     const ws = new WebSocket(`${wsBaseUrl}/ws/${roomID}`);
     wsRef.current = ws;
 
@@ -183,7 +189,7 @@ const Room = () => {
 
         // HOST: Initiate Offer when ready signal received
         if (data.type === "ready" && isHost) {
-          console.log("⚡ Host creating offer with local tracks...");
+          console.log("Host creating offer with local tracks...");
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
           ws.send(JSON.stringify({ type: "offer", sdp: offer }));
@@ -191,26 +197,46 @@ const Room = () => {
 
         // JOINER: Respond to incoming offer
         else if (data.type === "offer" && !isHost) {
-          console.log(
-            "📥 Joiner received offer, setting remote description...",
-          );
+          console.log("Joiner received offer, setting remote description...");
+          setRoomJoinerUser(currentUser);
           await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
-
-          console.log("⚡ Joiner creating answer with local tracks...");
+          readyForIceCandidates.current = true;
+          while (pendingIceCandidates.current.length > 0) {
+            await pc.addIceCandidate(pendingIceCandidates.current.shift());
+          }
+          console.log("Joiner creating answer with local tracks...");
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
-          ws.send(JSON.stringify({ type: "answer", sdp: answer }));
+          ws.send(
+            JSON.stringify({
+              type: "answer",
+              sdp: answer,
+              joinerUser: currentUser,
+            }),
+          );
         }
 
         // HOST: Process answer from Joiner
         else if (data.type === "answer" && isHost) {
-          console.log("📥 Host received answer!");
+          console.log("Host received answer!");
+          setRoomJoinerUser(data.joinerUser);
           await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+          readyForIceCandidates.current = true;
+
+          while (pendingIceCandidates.current.length > 0) {
+            await pc.addIceCandidate(pendingIceCandidates.current.shift());
+          }
         }
 
         // BOTH: Add remote ICE candidate
         else if (data.type === "candidate") {
-          await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+          if (!readyForIceCandidates.current) {
+            pendingIceCandidates.current.push(
+              new RTCIceCandidate(data.candidate),
+            );
+          } else {
+            await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+          }
         }
       } catch (err) {
         console.error("Error processing WebSocket message:", err);
@@ -274,7 +300,7 @@ const Room = () => {
           <div>{isHost ? <span>Invite link: {inviteLink}</span> : null}</div>
           <div style={{ display: "flex", gap: "20px", marginTop: "20px" }}>
             <div>
-              <h3>Host Video</h3>
+              <h3>Host: {roomCreatorUser}</h3>
               <video
                 ref={hostVideoRef}
                 autoPlay
@@ -284,7 +310,7 @@ const Room = () => {
               />
             </div>
             <div>
-              <h3>Joiner Video</h3>
+              <h3>Joiner: {roomJoinerUser}</h3>
               <video
                 ref={joinerVideoRef}
                 autoPlay
@@ -294,9 +320,6 @@ const Room = () => {
               />
             </div>
           </div>
-          <button>
-            <Link to="/">Go to Home</Link>
-          </button>
           <button onClick={handleLeaveRoom}>Leave Room</button>
         </div>
       )}

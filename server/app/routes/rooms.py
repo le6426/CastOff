@@ -49,6 +49,7 @@ def get_room_route(room_id: str):
     return {"creator_id": room[0],
             "creator_user": get_username_by_user_id(room[0]),
             "joined_user_id": room[1], 
+            "joined_user_user": get_username_by_user_id(room[1]),
             "created_at": room[2], 
             "expires_at": room[3]}
 
