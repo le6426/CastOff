@@ -38,7 +38,7 @@ function App() {
       // window.location.href = "/";
       const create_room_data = await create_room_response.json();
       const room_id = create_room_data["room_id"];
-      console.log("Room ID:", room_id);
+      // console.log("Room ID:", room_id);
 
       navigate(`/room/${room_id}`);
     } else {

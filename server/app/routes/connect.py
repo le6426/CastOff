@@ -9,6 +9,7 @@ from app.routes.auth_actions import *
 from app.routes.rooms_actions import *
 from app.routes.connect_actions import *
 from typing import Dict, List
+import json
 
 
 router = APIRouter()
@@ -43,10 +44,14 @@ async def websocket_connect(websocket: WebSocket, room_id: str, session_id: Anno
 
     if len(rooms[room_id]) < 2:
         rooms[room_id].append(websocket)
-
     else:
         await websocket.close(code=1000, reason="Room is full")
         return
+
+    if len(rooms[room_id]) == 2:
+        ready_payload = {"type": "ready", "message": "Both peers connected!"}
+        for connection in rooms[room_id]:
+            await connection.send_json(ready_payload)
 
     try:
         while True:

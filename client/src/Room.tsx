@@ -1,18 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import "./App.css";
 import { Link, useParams } from "react-router-dom";
 
 const Room = () => {
-  // const [loggedIn, setLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(``);
   const [roomCreatorUser, setRoomCreatorUser] = useState(``);
-  // const [currentUserID, setCurrentUserID] = useState(``);
-  // const [roomCreatorID, setRoomCreatorID] = useState(``);
   const [isHost, setIsHost] = useState(false);
   const [inviteLink, setInviteLink] = useState(``);
   const [joinError, setJoinError] = useState(``);
+  const [readyForConnection, setReadyForConnection] = useState(false);
+
+  const isInitializingRef = useRef(false);
 
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+  const wsBaseUrl = import.meta.env.VITE_WS_BASE_URL;
 
   let params = useParams();
   const roomID = params.roomID;
@@ -20,60 +21,84 @@ const Room = () => {
 
   useEffect(() => {
     const initializeRoom = async () => {
-      const get_session_response = await fetch(`${apiBaseUrl}/get_session`, {
-        credentials: "include",
-      });
+      if (!roomID || isInitializingRef.current) return;
+      isInitializingRef.current = true;
 
-      if (get_session_response.ok) {
+      try {
+        // 1. Get session
+        const get_session_response = await fetch(`${apiBaseUrl}/get_session`, {
+          credentials: "include",
+        });
+
+        if (!get_session_response.ok) {
+          const errorData = await get_session_response.json();
+          setJoinError(errorData.detail);
+          return;
+        }
+
         const session_data = await get_session_response.json();
         setCurrentUser(session_data.session_username);
-        // setCurrentUserID(session_data.session_userid);
-        // setLoggedIn(true);
+        const currentUserID = session_data.session_userid;
 
-        if (roomID) {
-          const checkRoom = async (currentUserID: string) => {
-            const get_room_response = await fetch(
-              `${apiBaseUrl}/room/${roomID}`,
-            );
+        // 2. Fetch room details
+        const get_room_response = await fetch(`${apiBaseUrl}/room/${roomID}`);
 
-            if (get_room_response.ok) {
-              const room_data = await get_room_response.json();
-              // setRoomCreatorID(room_data.creator_id);
-              setRoomCreatorUser(room_data.creator_user);
-              setIsHost(currentUserID == room_data.creator_id);
-              setInviteLink(`${window.location.origin}/room/${roomID}`);
-
-              // if current user isn't the creator, then proceed with joining
-              if (currentUserID != room_data.creator_id) {
-                const joinRoomIfJoiner = async () => {
-                  const join_room_response = await fetch(
-                    `${apiBaseUrl}/join_room/${roomID}`,
-                    {
-                      method: "POST",
-                      credentials: "include",
-                    },
-                  );
-                  if (!join_room_response.ok) {
-                    const errorData = await join_room_response.json();
-                    setJoinError(errorData.detail);
-                  }
-                };
-                joinRoomIfJoiner();
-              }
-            } else {
-              const errorData = await get_room_response.json();
-              setJoinError(errorData.detail);
-            }
-          };
-          checkRoom(session_data.session_userid);
+        if (!get_room_response.ok) {
+          const errorData = await get_room_response.json();
+          setJoinError(errorData.detail);
+          return;
         }
-      } else {
-        const errorData = await get_session_response.json();
-        setJoinError(errorData.detail);
+
+        const room_data = await get_room_response.json();
+        setRoomCreatorUser(room_data.creator_user);
+        const hostCheck = currentUserID === room_data.creator_id;
+        setIsHost(hostCheck);
+        setInviteLink(`${window.location.origin}/room/${roomID}`);
+
+        // 3. AWAIT joining if the user is not the host
+        if (!hostCheck) {
+          const join_room_response = await fetch(
+            `${apiBaseUrl}/join_room/${roomID}`,
+            {
+              method: "POST",
+              credentials: "include",
+            },
+          );
+
+          if (!join_room_response.ok) {
+            const errorData = await join_room_response.json();
+            setJoinError(errorData.detail);
+            return;
+          }
+        }
+
+        setReadyForConnection(true);
+      } catch (e) {
+        isInitializingRef.current = false;
+        console.error("Room initialization failed:", e);
       }
     };
+
     initializeRoom();
-  }, []);
+  }, [roomID]);
+
+  useEffect(() => {
+    if (!roomID || !readyForConnection) return;
+
+    var ws = new WebSocket(`${wsBaseUrl}/ws/${roomID}`);
+
+    ws.onopen = () => {
+      console.log("Connected!");
+      ws.send("Test message");
+    };
+    ws.onmessage = (event) => console.log("Received:", event.data);
+    ws.onclose = (event) =>
+      console.log(`Closed (${event.code}): ${event.reason}`);
+
+    return () => {
+      ws.close();
+    };
+  }, [readyForConnection]);
 
   const handleLeaveRoom = () => {
     const leaveRoom = async () => {
