@@ -1,14 +1,21 @@
-import psycopg
 import os
-from dotenv import load_dotenv
+from contextlib import contextmanager
+from psycopg_pool import ConnectionPool
 
-load_dotenv()
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-DATABASE_URL = os.getenv("DATABASE_URL", "dbname=omoggle")
+pool = ConnectionPool(
+    conninfo=DATABASE_URL,
+    min_size=2,
+    max_size=10,
+    open=True  # Opens min_size connections immediately
+)
 
-'''
-Connects to the database using the DATABASE_URL from the .env file. 
-If the DATABASE_URL is not set, it defaults to "dbname=omoggle".
-'''
+@contextmanager
 def get_connection():
-    return psycopg.connect(DATABASE_URL)
+    """
+    Borrows a connection from the pool and returns it automatically 
+    when the 'with' block completes.
+    """
+    with pool.connection() as conn:
+        yield conn
