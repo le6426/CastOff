@@ -18,4 +18,4 @@ def get_connection():
     when the 'with' block completes.
     """
     with pool.connection() as conn:
-        yield conn
+        yield conn 
