@@ -32,8 +32,8 @@ const Room = () => {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
   const wsBaseUrl = import.meta.env.VITE_WS_BASE_URL;
   const stunServer1 = import.meta.env.VITE_STUN_SERVER_1;
-  const meteredUser = import.meta.env.VITE_METER_USER;
-  const meteredCredential = import.meta.env.VITE_METER_CREDENTIAL;
+  const meteredUser = import.meta.env.VITE_METERED_USER;
+  const meteredCredential = import.meta.env.VITE_METERED_CREDENTIAL;
 
   let params = useParams();
   const roomID = params.roomID;
