@@ -32,6 +32,8 @@ const Room = () => {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
   const wsBaseUrl = import.meta.env.VITE_WS_BASE_URL;
   const stunServer1 = import.meta.env.VITE_STUN_SERVER_1;
+  const meteredUser = import.meta.env.VITE_METER_USER;
+  const meteredCredential = import.meta.env.VITE_METER_CREDENTIAL;
 
   let params = useParams();
   const roomID = params.roomID;
@@ -142,7 +144,29 @@ const Room = () => {
 
     // 1. Instantiate Peer Connection
     const rtcConfig = {
-      iceServers: [{ urls: stunServer1 }],
+      iceServers: [
+        { urls: stunServer1 },
+        {
+          urls: "turn:global.relay.metered.ca:80",
+          username: meteredUser,
+          credential: meteredCredential,
+        },
+        {
+          urls: "turn:global.relay.metered.ca:80?transport=tcp",
+          username: meteredUser,
+          credential: meteredCredential,
+        },
+        {
+          urls: "turn:global.relay.metered.ca:443",
+          username: meteredUser,
+          credential: meteredCredential,
+        },
+        {
+          urls: "turns:global.relay.metered.ca:443?transport=tcp",
+          username: meteredUser,
+          credential: meteredCredential,
+        },
+      ],
     };
     const pc = new RTCPeerConnection(rtcConfig);
     peerConnectionRef.current = pc;
