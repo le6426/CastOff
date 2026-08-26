@@ -38,7 +38,7 @@ def login_user(payload: AuthorizationRequest):
         user_id = get_user_id_by_username(payload.username)
         session_id = create_session(user_id)
         response = JSONResponse(content={"message": "Login successful"})
-        response.set_cookie(key="session_id", value=str(session_id), httponly=True)
+        response.set_cookie(key="session_id", value=str(session_id), httponly=True, samesite="none", secure=True)
         return response
     else:
         raise HTTPException(status_code=401, detail="Invalid username or password")
@@ -59,6 +59,6 @@ def logout_user(session_id: Annotated[str | None, Cookie()] = None):
        raise HTTPException(status_code=401, detail="Session already expired")
     
     response = JSONResponse(content={"message": "Logout successful"})
-    response.delete_cookie(key="session_id", httponly=True)
+    response.delete_cookie(key="session_id", httponly=True, samesite="none", secure=True)
     delete_session(session_id)
     return response
