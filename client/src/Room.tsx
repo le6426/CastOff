@@ -302,9 +302,9 @@ const Room = () => {
 
         let winner = "Tie";
         if (host_score < joiner_score) {
-          winner = roomCreatorUser;
-        } else if (host_score > joiner_score) {
           winner = roomJoinerUser;
+        } else if (host_score > joiner_score) {
+          winner = roomCreatorUser;
         }
         setGameWinner(winner);
 
