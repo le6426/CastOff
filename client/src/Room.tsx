@@ -11,6 +11,9 @@ const Room = () => {
   const [joinError, setJoinError] = useState(``);
   const [readyForConnection, setReadyForConnection] = useState(false);
   const [isMediaReady, setIsMediaReady] = useState(false);
+  const [hostScore, setHostScore] = useState(0);
+  const [joinerScore, setJoinerScore] = useState(0);
+  const [gameWinner, setGameWinner] = useState(``);
 
   // Video element refs
   const hostVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -238,6 +241,13 @@ const Room = () => {
             await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
           }
         }
+
+        // JOINER: Checks game results
+        else if (data.type === "game_results") {
+          setHostScore(data.hostScore);
+          setJoinerScore(data.joinerScore);
+          setGameWinner(data.winner);
+        }
       } catch (err) {
         console.error("Error processing WebSocket message:", err);
       }
@@ -275,6 +285,44 @@ const Room = () => {
     leaveRoom();
   };
 
+  const handleStartGame = () => {
+    const startGame = async () => {
+      const start_game_response = await fetch(
+        `${apiBaseUrl}/start_game/${roomID}`,
+      );
+      const start_data = await start_game_response.json();
+      if (start_game_response.ok) {
+        console.log("HOST SCORE:", start_data.host_score);
+        console.log("JOINER SCORE:", start_data.joiner_score);
+
+        const { host_score, joiner_score } = start_data;
+
+        setHostScore(host_score);
+        setJoinerScore(joiner_score);
+
+        let winner = "Tie";
+        if (host_score < joiner_score) {
+          winner = roomCreatorUser;
+        } else if (host_score > joiner_score) {
+          winner = roomJoinerUser;
+        }
+        setGameWinner(winner);
+
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          wsRef.current.send(
+            JSON.stringify({
+              type: "game_results",
+              hostScore: host_score,
+              joinerScore: joiner_score,
+              winner: winner,
+            }),
+          );
+        }
+      }
+    };
+    startGame();
+  };
+
   return (
     <>
       {joinError ? (
@@ -308,6 +356,7 @@ const Room = () => {
                 muted={isHost} // Mute if this user is the host to prevent audio echo
                 style={{ width: "320px", background: "#000" }}
               />
+              <a>Score: {hostScore}</a>
             </div>
             <div>
               <h3>Joiner: {roomJoinerUser}</h3>
@@ -318,7 +367,14 @@ const Room = () => {
                 muted={!isHost} // Mute if this user is the joiner to prevent audio echo
                 style={{ width: "320px", background: "#000" }}
               />
+              <a>Score: {joinerScore}</a>
             </div>
+          </div>
+          <div>Winner: {gameWinner}</div>
+          <div>
+            {isHost ? (
+              <button onClick={handleStartGame}>Start Game</button>
+            ) : null}
           </div>
           <button onClick={handleLeaveRoom}>Leave Room</button>
         </div>
