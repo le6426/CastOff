@@ -31,9 +31,8 @@ const Room = () => {
 
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
   const wsBaseUrl = import.meta.env.VITE_WS_BASE_URL;
-  const stunServer1 = import.meta.env.VITE_STUN_SERVER_1;
-  const meteredUser = import.meta.env.VITE_METERED_USER;
-  const meteredCredential = import.meta.env.VITE_METERED_CREDENTIAL;
+  const turnUser = import.meta.env.VITE_TURN_USER;
+  const turnCredential = import.meta.env.VITE_TURN_PASS;
 
   let params = useParams();
   const roomID = params.roomID;
@@ -142,29 +141,20 @@ const Room = () => {
   useEffect(() => {
     if (!roomID || !readyForConnection || !isMediaReady) return;
 
-    // 1. Instantiate Peer Connection
+    // 1. Instantiate Peer Connection through STUN and TURN configuration
     const rtcConfig = {
       iceServers: [
-        { urls: stunServer1 },
+        { urls: "stun:free.expressturn.com:3478" },
+        { urls: "stun:stun.l.google.com:19302" },
         {
-          urls: "turn:global.relay.metered.ca:80",
-          username: meteredUser,
-          credential: meteredCredential,
+          urls: "turn:free.expressturn.com:3478",
+          username: turnUser,
+          credential: turnCredential,
         },
         {
-          urls: "turn:global.relay.metered.ca:80?transport=tcp",
-          username: meteredUser,
-          credential: meteredCredential,
-        },
-        {
-          urls: "turn:global.relay.metered.ca:443",
-          username: meteredUser,
-          credential: meteredCredential,
-        },
-        {
-          urls: "turns:global.relay.metered.ca:443?transport=tcp",
-          username: meteredUser,
-          credential: meteredCredential,
+          urls: "turn:free.expressturn.com:3478?transport=tcp",
+          username: turnUser,
+          credential: turnCredential,
         },
       ],
     };
