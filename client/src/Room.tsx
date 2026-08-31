@@ -299,6 +299,24 @@ const Room = () => {
     leaveRoom();
   };
 
+  useEffect(() => {
+    const handlePageHide = () => {
+      if (!roomID) return;
+
+      fetch(`${apiBaseUrl}/leave_room/${roomID}`, {
+        method: "POST",
+        credentials: "include",
+        keepalive: true, // Guarantees request completes even if tab closes
+      });
+    };
+
+    window.addEventListener("pagehide", handlePageHide);
+
+    return () => {
+      window.removeEventListener("pagehide", handlePageHide);
+    };
+  }, [roomID, apiBaseUrl]);
+
   const handleStartGame = () => {
     const startGame = async () => {
       const start_game_response = await fetch(
