@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import "./Register.css";
+import "./Login.css";
 
 const Login = () => {
   const userRef = useRef<HTMLInputElement>(null);
@@ -50,50 +50,54 @@ const Login = () => {
   };
 
   return (
-    <section>
-      <p
-        ref={errRef}
-        className={errMsg ? "errmsg" : "offscreen"}
-        aria-live="assertive"
-      >
-        {errMsg}
-      </p>
-      <h1>Log In</h1>
-      <form onSubmit={handleSubmit}>
-        <label htmlFor="username">Username:</label>
+    <div className="auth-page">
+      <div className="auth-panel">
+        <section>
+          <p
+            ref={errRef}
+            className={errMsg ? "errmsg" : "offscreen"}
+            aria-live="assertive"
+          >
+            {errMsg}
+          </p>
+          <h1>Log In</h1>
+          <form onSubmit={handleSubmit}>
+            <label htmlFor="username">Username:</label>
 
-        <input
-          type="text"
-          id="username"
-          ref={userRef}
-          autoComplete="off"
-          onChange={(e) => setUser(e.target.value)}
-          value={user}
-          required
-        />
+            <input
+              type="text"
+              id="username"
+              ref={userRef}
+              autoComplete="off"
+              onChange={(e) => setUser(e.target.value)}
+              value={user}
+              required
+            />
 
-        <label htmlFor="password">Password:</label>
-        <input
-          type="password"
-          id="password"
-          onChange={(e) => setPwd(e.target.value)}
-          value={pwd}
-          required
-        />
+            <label htmlFor="password">Password:</label>
+            <input
+              type="password"
+              id="password"
+              onChange={(e) => setPwd(e.target.value)}
+              value={pwd}
+              required
+            />
 
-        <button disabled={user && pwd ? false : true}>Log In</button>
-      </form>
-      <div>
-        Don't have an account?
-        <button>
-          <Link to="/register">Register</Link>
-        </button>
+            <button disabled={user && pwd ? false : true}>Log In</button>
+          </form>
+          <div className="switch">
+            Don't have an account?
+            <button>
+              <Link to="/register">Register</Link>
+            </button>
+          </div>
+          <br />
+          <button>
+            <Link to="/">Go to Home</Link>
+          </button>
+        </section>
       </div>
-      <br />
-      <button>
-        <Link to="/">Go to Home</Link>
-      </button>
-    </section>
+    </div>
   );
 };
 

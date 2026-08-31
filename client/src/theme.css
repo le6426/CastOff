@@ -1,0 +1,79 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap");
+
+:root {
+  --color-bg: #0f1b2d;
+  --color-surface: #16243a;
+  --color-border: #2a3e5c;
+  --color-text: #eaf1fb;
+  --color-text-muted: #93a6c2;
+  --color-accent: #e8a33d;
+  --color-accent-strong: #f4b94f;
+  --color-success: #4fd1c5;
+  --color-danger: #ff6b6b;
+
+  --font-display: "Space Grotesk", "Segoe UI", sans-serif;
+  --font-body: "Inter", "Segoe UI", sans-serif;
+
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+}
+
+a {
+  color: var(--color-accent);
+}
+
+button {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: var(--color-accent);
+  color: #1a1305;
+  cursor: pointer;
+  transition: background-color 120ms ease, transform 120ms ease;
+}
+
+button:hover:not(:disabled) {
+  background: var(--color-accent-strong);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+button:disabled {
+  background: var(--color-border);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: 2px;
+}
+
+button a {
+  color: inherit;
+  text-decoration: none;
+}

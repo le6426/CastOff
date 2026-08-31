@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import "./App.css";
 import { useNavigate } from "react-router-dom";
+import "./App.css";
 
 function App() {
   const [loggedIn, setLoggedIn] = useState(false);
@@ -48,11 +48,13 @@ function App() {
 
   return (
     <>
-      <h1>This is the Landing Page</h1>
-      <div>
-        {loggedIn ? (
-          <button onClick={handleCreateRoom}>Create Room</button>
-        ) : null}
+      <div className="landing">
+        <h1>This is the Landing Page</h1>
+        <div className="landing__actions">
+          {loggedIn ? (
+            <button onClick={handleCreateRoom}>Create Room</button>
+          ) : null}
+        </div>
       </div>
     </>
   );

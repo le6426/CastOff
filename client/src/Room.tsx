@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
-import "./App.css";
 import { Link, useParams } from "react-router-dom";
+import "./Room.css";
 
 const Room = () => {
   const [currentUser, setCurrentUser] = useState(``);
@@ -36,6 +36,14 @@ const Room = () => {
 
   let params = useParams();
   const roomID = params.roomID;
+
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  const handleCopyInvite = () => {
+    navigator.clipboard.writeText(inviteLink);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 1500);
+  };
 
   // Initializing the room (getting: session, room info, joining room)
   useEffect(() => {
@@ -315,7 +323,7 @@ const Room = () => {
     return () => {
       window.removeEventListener("pagehide", handlePageHide);
     };
-  }, [roomID, apiBaseUrl]);
+  }, [roomID]);
 
   const handleStartGame = () => {
     const startGame = async () => {
@@ -358,57 +366,83 @@ const Room = () => {
   return (
     <>
       {joinError ? (
-        <div>
-          <a>{joinError}</a>
-          <br />
-          <button>
+        <div className="room-error">
+          <p>{joinError}</p>
+          <button className="btn-secondary">
             <Link to="/">Go to Home</Link>
           </button>
         </div>
       ) : (
-        <div>
-          <h1>This is a room</h1>
-          <div>
-            {isHost ? (
-              <span>You are the host</span>
-            ) : (
-              <span>You are the joiner</span>
-            )}
+        <div className="room">
+          <div className="room__topbar">
+            <div className="room__topbar-info">
+              <div className="room__meta">
+                <span>
+                  Host: <strong>{roomCreatorUser}</strong>
+                </span>
+                <span>
+                  You: <strong>{currentUser}</strong>
+                </span>
+                {gameWinner && (
+                  <span className="room__winner">
+                    Winner: <strong>{gameWinner}</strong>
+                  </span>
+                )}
+              </div>
+              {isHost && (
+                <div className="room__invite">
+                  <span>Invite:</span>
+                  <code>{inviteLink}</code>
+                  <button
+                    className="btn-secondary btn-copy"
+                    onClick={handleCopyInvite}
+                  >
+                    {linkCopied ? "Copied" : "Copy"}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="room__actions">
+              {isHost && <button onClick={handleStartGame}>Start Game</button>}
+              <button className="btn-secondary" onClick={handleLeaveRoom}>
+                Leave Room
+              </button>
+            </div>
           </div>
-          <div>Current Host: {roomCreatorUser}</div>
-          <div>Current user: {currentUser}</div>
-          <div>{isHost ? <span>Invite link: {inviteLink}</span> : null}</div>
-          <div style={{ display: "flex", gap: "20px", marginTop: "20px" }}>
-            <div>
-              <h3>Host: {roomCreatorUser}</h3>
+
+          <div className="room__stage">
+            <div className="video-tile">
               <video
                 ref={hostVideoRef}
                 autoPlay
                 playsInline
-                muted={isHost} // Mute if this user is the host to prevent audio echo
-                style={{ width: "320px", background: "#000" }}
+                muted={isHost}
+                className="video-tile__video"
               />
-              <a>Score: {hostScore}</a>
+              <div className="video-tile__overlay">
+                <span className="video-tile__name">
+                  {roomCreatorUser} (Host)
+                </span>
+                <span className="video-tile__score">Score: {hostScore}</span>
+              </div>
             </div>
-            <div>
-              <h3>Joiner: {roomJoinerUser}</h3>
+            <div className="video-tile">
               <video
                 ref={joinerVideoRef}
                 autoPlay
                 playsInline
-                muted={!isHost} // Mute if this user is the joiner to prevent audio echo
-                style={{ width: "320px", background: "#000" }}
+                muted={!isHost}
+                className="video-tile__video"
               />
-              <a>Score: {joinerScore}</a>
+              <div className="video-tile__overlay">
+                <span className="video-tile__name">
+                  {roomJoinerUser || "Waiting for joiner..."}
+                </span>
+                <span className="video-tile__score">Score: {joinerScore}</span>
+              </div>
             </div>
           </div>
-          <div>Winner: {gameWinner}</div>
-          <div>
-            {isHost ? (
-              <button onClick={handleStartGame}>Start Game</button>
-            ) : null}
-          </div>
-          <button onClick={handleLeaveRoom}>Leave Room</button>
         </div>
       )}
     </>

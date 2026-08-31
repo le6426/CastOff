@@ -1,0 +1,147 @@
+@import "./theme.css";
+
+.room {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.room__topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px 28px;
+  border-bottom: 1px solid var(--color-border);
+  flex-wrap: wrap;
+}
+
+.room__topbar h1 {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  margin: 0 0 8px;
+  color: var(--color-text);
+}
+
+.room__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.room__meta strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.room__winner strong {
+  color: var(--color-accent-strong);
+}
+
+.room__invite {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+.room__invite code {
+  display: inline-block;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  color: var(--color-accent-strong);
+  font-family: monospace;
+  vertical-align: middle;
+}
+
+.btn-copy {
+  padding: 4px 10px;
+  font-size: 0.78rem;
+}
+
+.room__actions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  border-color: var(--color-text-muted);
+  background: var(--color-surface);
+}
+
+.room__stage {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.video-tile {
+  position: relative;
+  width: 50%;
+  height: 100%;
+}
+
+.video-tile:first-child {
+  border-right: 1px solid var(--color-border);
+}
+
+.video-tile__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+  display: block;
+}
+
+.video-tile__overlay {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  background: rgba(15, 27, 45, 0.7);
+  border-radius: var(--radius-sm);
+  backdrop-filter: blur(4px);
+}
+
+.video-tile__name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.video-tile__score {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.room-error {
+  max-width: 480px;
+  margin: 64px auto 0;
+  padding: 24px;
+}
+
+.room-error p {
+  color: var(--color-danger);
+  font-size: 0.95rem;
+  margin-bottom: 16px;
+}

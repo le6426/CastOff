@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import "./Navbar.css";
 
 const Navbar = () => {
   const [loggedIn, setLoggedIn] = useState(false);
@@ -40,30 +41,31 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-slate-800">
-      <div className="nav-brand">
-        {" "}
-        <button>
-          <Link to="/">Omoggle</Link>
-        </button>
-      </div>
-      <ul className="nav-menu">
+    <nav className="navbar">
+      <Link to="/" className="navbar__brand">
+        Omoggle
+      </Link>
+      <ul className="navbar__menu">
         <li>
           {loggedIn ? (
-            <span>Logged in as: {currentUser}</span>
+            <span className="navbar__user">
+              Logged in as <strong>{currentUser}</strong>
+            </span>
           ) : (
-            <button>
-              <Link to="/login">Log In</Link>
-            </button>
+            <Link to="/login" className="navbar__link">
+              Log In
+            </Link>
           )}
         </li>
         <li>
           {loggedIn ? (
-            <button onClick={handleLogOut}>Log Out</button>
-          ) : (
-            <button>
-              <Link to="/register">Register</Link>
+            <button className="btn-secondary btn-small" onClick={handleLogOut}>
+              Log Out
             </button>
+          ) : (
+            <Link to="/register" className="navbar__link navbar__link--accent">
+              Register
+            </Link>
           )}
         </li>
       </ul>

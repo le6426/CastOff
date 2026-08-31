@@ -9,43 +9,39 @@
 
 .auth-panel {
   width: 100%;
-  max-width: 400px;
+  max-width: 380px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  border-top: 3px solid var(--color-success);
+  border-top: 3px solid var(--color-accent);
   padding: 32px 28px 28px;
-  display: flex;
-  flex-direction: column;
 }
 
 .auth-panel h1 {
   font-family: var(--font-display);
   font-size: 1.5rem;
-  margin: 0 0 20px;
+  margin: 0 0 24px;
   color: var(--color-text);
 }
 
 .auth-panel form {
   display: flex;
   flex-direction: column;
+  gap: 14px;
 }
 
 .auth-panel label {
   font-size: 0.85rem;
   color: var(--color-text-muted);
-  margin-top: 14px;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 6px;
 }
 
-.auth-panel input[type="text"],
-.auth-panel input[type="password"] {
+.auth-panel input {
   font-family: var(--font-body);
   font-size: 0.95rem;
   padding: 10px 12px;
-  margin-top: 6px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
   background: var(--color-bg);
@@ -53,45 +49,7 @@
 }
 
 .auth-panel button {
-  margin-top: 22px;
-}
-
-.auth-panel .valid {
-  color: var(--color-success);
-}
-
-.auth-panel .invalid {
-  color: var(--color-danger);
-}
-
-.auth-panel .hide {
-  display: none;
-}
-
-.auth-panel .offscreen {
-  position: absolute;
-  left: -9999px;
-}
-
-.auth-panel .instructions {
-  font-size: 0.78rem;
-  color: var(--color-text-muted);
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 8px 10px;
   margin-top: 6px;
-  line-height: 1.4;
-}
-
-.auth-panel .errmsg {
-  background: rgba(255, 107, 107, 0.12);
-  border: 1px solid var(--color-danger);
-  color: var(--color-danger);
-  font-size: 0.85rem;
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
-  margin-bottom: 16px;
 }
 
 .auth-panel .switch {
@@ -101,4 +59,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.auth-panel .home-link {
+  margin-top: 12px;
 }
