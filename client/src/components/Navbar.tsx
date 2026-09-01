@@ -1,6 +1,6 @@
 // Navbar.tsx
 
-import { useState, useEffect, useContext } from "react";
+import { useContext } from "react";
 import { SessionContext } from "../main";
 import { Link, useNavigate } from "react-router-dom";
 import "./Navbar.css";

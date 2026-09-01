@@ -11,6 +11,8 @@ function App() {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
   const navigate = useNavigate();
 
+  console.log("Current User:", currentUser);
+
   const [isCreating, setIsCreating] = useState(false);
 
   const handleCreateRoom = async () => {
