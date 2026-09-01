@@ -1,48 +1,42 @@
-import { useEffect, useState } from "react";
+import { useState, useContext } from "react";
+import { SessionContext } from "./main";
 import { useNavigate, Link } from "react-router-dom";
 import "./App.css";
 
 function App() {
-  const [loggedIn, setLoggedIn] = useState(false);
-  // const [currentUser, setCurrentUser] = useState(null);
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
-  let navigate = useNavigate();
+  const session = useContext(SessionContext);
+  if (!session) throw new Error("App must be used within SessionContext");
 
-  useEffect(() => {
-    const checkSession = async () => {
-      const response = await fetch(`${apiBaseUrl}/get_session`, {
+  const { loggedIn, currentUser } = session;
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+  const navigate = useNavigate();
+
+  const [isCreating, setIsCreating] = useState(false);
+
+  const handleCreateRoom = async () => {
+    if (isCreating) return;
+    setIsCreating(true);
+
+    try {
+      const create_room_response = await fetch(`${apiBaseUrl}/create_room`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         credentials: "include",
       });
 
-      if (response.ok) {
-        // const data = await response.json();
-        // setCurrentUser(data.session_username);
-        setLoggedIn(true);
+      if (create_room_response.ok) {
+        const create_room_data = await create_room_response.json();
+        const room_id = create_room_data["room_id"];
+        navigate(`/room/${room_id}`);
       } else {
-        console.log("No response from server"); // for dev
+        console.error("Failed to create room: Server returned error status");
       }
-    };
-    checkSession();
-  }, []);
-
-  const handleCreateRoom = async () => {
-    const create_room_response = await fetch(`${apiBaseUrl}/create_room`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
-    });
-
-    if (create_room_response.ok) {
-      // window.location.href = "/";
-      const create_room_data = await create_room_response.json();
-      const room_id = create_room_data["room_id"];
-      // console.log("Room ID:", room_id);
-
-      navigate(`/room/${room_id}`);
-    } else {
-      console.log("error creating room");
+    } catch (error) {
+      console.error("Network error while creating room:", error);
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -58,9 +52,11 @@ function App() {
           <div className="landing__actions">
             {loggedIn ? (
               <button
-                onClick={loggedIn ? handleCreateRoom : () => navigate("/login")}
+                onClick={handleCreateRoom}
+                disabled={isCreating}
+                className="btn-primary"
               >
-                Enter the Arena
+                {isCreating ? "Summoning Arena..." : "Enter the Arena"}
               </button>
             ) : (
               <>
@@ -82,14 +78,19 @@ function App() {
             <span className="how__index">01</span>
             <div>
               <h3>Summon an Arena</h3>
-              <p>Create a private battleground ready for 1v1 spellcasting.</p>
+              <p>
+                One click creates a private battleground ready for 1v1
+                spellcasting.
+              </p>
             </div>
           </li>
           <li>
             <span className="how__index">02</span>
             <div>
               <h3>Challenge a Rival</h3>
-              <p>Send the duel link to an opponent.</p>
+              <p>
+                Send the duel link to an opponent via message, Discord, or chat.
+              </p>
             </div>
           </li>
           <li>
@@ -97,7 +98,7 @@ function App() {
             <div>
               <h3>Cast & Clash</h3>
               <p>
-                Enable your camera, use somatic hand gestures, and battle using
+                Enable your camera, use somatic hand gestures, and battle in
                 real-time computer vision.
               </p>
             </div>

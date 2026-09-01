@@ -1,42 +1,30 @@
 // Navbar.tsx
 
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect, useContext } from "react";
+import { SessionContext } from "../main";
+import { Link, useNavigate } from "react-router-dom";
 import "./Navbar.css";
 
 const Navbar = () => {
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
+  const session = useContext(SessionContext);
+  if (!session) throw new Error("Navbar must be used within SessionContext");
+
+  const { loggedIn, setLoggedIn, currentUser, setCurrentUser } = session;
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
-
-  useEffect(() => {
-    const checkSession = async () => {
-      const response = await fetch(`${apiBaseUrl}/get_session`, {
-        credentials: "include",
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setCurrentUser(data.session_username);
-        setLoggedIn(true);
-      } else {
-        console.log("No response from server"); // for dev
-      }
-    };
-    checkSession();
-  }, []);
+  const navigate = useNavigate();
 
   const handleLogOut = async () => {
+    setCurrentUser(null);
+    setLoggedIn(false);
+    navigate("/");
+
     try {
       await fetch(`${apiBaseUrl}/logout`, {
         method: "POST",
         credentials: "include",
       });
-      setCurrentUser(null);
-      setLoggedIn(false);
-      window.location.href = "/";
     } catch (error) {
-      console.log("No response from server");
+      console.error("Logout request failed", error);
     }
   };
 

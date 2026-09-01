@@ -1,12 +1,68 @@
-import { StrictMode } from "react";
+import { StrictMode, useState, useEffect, createContext } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { createRoot } from "react-dom/client";
+import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
+
 import App from "./App.tsx";
 import Register from "./Register.tsx";
 import Login from "./Login.tsx";
 import NotFoundPage from "./NotFoundPage.tsx";
-import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
 import Nav from "./components/Navbar.tsx";
 import Room from "./Room.tsx";
+
+interface SessionContextType {
+  loggedIn: boolean;
+  setLoggedIn: Dispatch<SetStateAction<boolean>>;
+  currentUser: string | null;
+  setCurrentUser: Dispatch<SetStateAction<string | null>>;
+}
+
+export const SessionContext = createContext<SessionContextType | undefined>(
+  undefined,
+);
+
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+
+function LayoutComponent() {
+  const [loggedIn, setLoggedIn] = useState<boolean>(false);
+  const [currentUser, setCurrentUser] = useState<string | null>(null);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const response = await fetch(`${apiBaseUrl}/get_session`, {
+          credentials: "include",
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setCurrentUser(data.session_username);
+          setLoggedIn(true);
+        }
+      } catch (error) {
+        console.error("Failed to check session", error);
+      }
+    };
+
+    checkSession();
+  }, []);
+
+  return (
+    <SessionContext.Provider
+      value={{ loggedIn, setLoggedIn, currentUser, setCurrentUser }}
+    >
+      <div>
+        <header>
+          <Nav />
+        </header>
+        <main>
+          <Outlet />
+        </main>
+        <footer></footer>
+      </div>
+    </SessionContext.Provider>
+  );
+}
 
 const router = createBrowserRouter([
   {
@@ -36,20 +92,6 @@ const router = createBrowserRouter([
     element: <NotFoundPage />,
   },
 ]);
-
-function LayoutComponent() {
-  return (
-    <div>
-      <header>
-        <Nav />
-      </header>
-      <main>
-        <Outlet />
-      </main>
-      <footer></footer>
-    </div>
-  );
-}
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
