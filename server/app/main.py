@@ -13,7 +13,7 @@ app.add_middleware(
                    "http://localhost:5174", 
                    "http://localhost:4173", 
                    "https://omoggle-v2.vercel.app", 
-                   "https://castoff-le6426.vercel.app/"],
+                   "https://castoff-le6426.vercel.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
