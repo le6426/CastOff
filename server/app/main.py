@@ -7,6 +7,7 @@ from app.routes.start_game import router as start_game_router
 
 app = FastAPI()
 
+# CORS configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", 
