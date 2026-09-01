@@ -29,6 +29,8 @@ const Register = () => {
 
   const [errMsg, setErrMsg] = useState("");
 
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+
   let navigate = useNavigate();
 
   useEffect(() => {
@@ -61,6 +63,7 @@ const Register = () => {
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
     try {
+      setIsCreatingAccount(true);
       const response = await fetch(`${apiBaseUrl}/register`, {
         method: "POST",
         headers: {
@@ -79,6 +82,8 @@ const Register = () => {
       }
     } catch (error) {
       setErrMsg("No response from server");
+    } finally {
+      setIsCreatingAccount(false);
     }
   };
 
@@ -209,7 +214,7 @@ const Register = () => {
             <button
               disabled={!validName || !validPwd || !validMatch ? true : false}
             >
-              Sign Up
+              {isCreatingAccount ? "Creating Account..." : "Create Account"}
             </button>
           </form>
           <div className="switch">
