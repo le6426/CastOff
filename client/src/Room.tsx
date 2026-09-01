@@ -304,7 +304,7 @@ const Room = () => {
         );
 
         if (leave_room_response.ok) {
-          window.location.href = "/";
+          navigate("/");
         } else {
           const errorData = await leave_room_response.json();
           setJoinError(errorData.detail);
