@@ -24,43 +24,16 @@ export const SessionContext = createContext<SessionContextType | undefined>(
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
 function LayoutComponent() {
-  const [loggedIn, setLoggedIn] = useState<boolean>(false);
-  const [currentUser, setCurrentUser] = useState<string | null>(null);
-
-  useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const response = await fetch(`${apiBaseUrl}/get_session`, {
-          credentials: "include",
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setCurrentUser(data.session_username);
-          setLoggedIn(true);
-        }
-      } catch (error) {
-        console.error("Failed to check session", error);
-      }
-    };
-
-    checkSession();
-  }, []);
-
   return (
-    <SessionContext.Provider
-      value={{ loggedIn, setLoggedIn, currentUser, setCurrentUser }}
-    >
-      <div>
-        <header>
-          <Nav />
-        </header>
-        <main>
-          <Outlet />
-        </main>
-        <footer></footer>
-      </div>
-    </SessionContext.Provider>
+    <div>
+      <header>
+        <Nav />
+      </header>
+      <main>
+        <Outlet />
+      </main>
+      <footer></footer>
+    </div>
   );
 }
 
@@ -93,8 +66,41 @@ const router = createBrowserRouter([
   },
 ]);
 
+function RootApp() {
+  const [loggedIn, setLoggedIn] = useState<boolean>(false);
+  const [currentUser, setCurrentUser] = useState<string | null>(null);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const response = await fetch(`${apiBaseUrl}/get_session`, {
+          credentials: "include",
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setCurrentUser(data.session_username);
+          setLoggedIn(true);
+        }
+      } catch (error) {
+        console.error("Failed to check session", error);
+      }
+    };
+
+    checkSession();
+  }, []);
+
+  return (
+    <SessionContext.Provider
+      value={{ loggedIn, setLoggedIn, currentUser, setCurrentUser }}
+    >
+      <RouterProvider router={router} />
+    </SessionContext.Provider>
+  );
+}
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <RootApp />
   </StrictMode>,
 );

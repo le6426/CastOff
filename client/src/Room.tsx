@@ -1,9 +1,15 @@
-import { useEffect, useState, useRef } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useEffect, useState, useRef, useContext } from "react";
+import { Link, useParams, useNavigate } from "react-router-dom";
+import { SessionContext } from "./main";
 import "./Room.css";
 
 const Room = () => {
-  const [currentUser, setCurrentUser] = useState(``);
+  const session = useContext(SessionContext);
+  if (!session) throw new Error("Room must be used within SessionContext");
+
+  const { loggedIn, currentUser } = session;
+  const navigate = useNavigate();
+
   const [roomCreatorUser, setRoomCreatorUser] = useState(``);
   const [roomJoinerUser, setRoomJoinerUser] = useState(``);
   const [isHost, setIsHost] = useState(false);
@@ -34,10 +40,12 @@ const Room = () => {
   const turnUser = import.meta.env.VITE_TURN_USER;
   const turnCredential = import.meta.env.VITE_TURN_PASS;
 
-  let params = useParams();
+  const params = useParams();
   const roomID = params.roomID;
 
   const [linkCopied, setLinkCopied] = useState(false);
+
+  const [isLeaving, setIsLeaving] = useState(false);
 
   const handleCopyInvite = () => {
     navigator.clipboard.writeText(inviteLink);
@@ -45,44 +53,39 @@ const Room = () => {
     setTimeout(() => setLinkCopied(false), 1500);
   };
 
-  // Initializing the room (getting: session, room info, joining room)
+  // Initializing the room using global session state
   useEffect(() => {
     const initializeRoom = async () => {
       if (!roomID || isInitializingRef.current) return;
+
+      // If user isn't logged in, redirect to login page
+      if (!loggedIn || !currentUser) {
+        setJoinError("You must be logged in to enter a room.");
+        navigate("/login");
+        return;
+      }
+
       isInitializingRef.current = true;
 
       try {
-        // Get session
-        const get_session_response = await fetch(`${apiBaseUrl}/get_session`, {
-          credentials: "include",
-        });
-
-        if (!get_session_response.ok) {
-          const errorData = await get_session_response.json();
-          setJoinError(errorData.detail);
-          return;
-        }
-
-        const session_data = await get_session_response.json();
-        setCurrentUser(session_data.session_username);
-        const currentUserID = session_data.session_userid;
-
-        // Fetch room details
+        // Fetch room details directly
         const get_room_response = await fetch(`${apiBaseUrl}/room/${roomID}`);
 
         if (!get_room_response.ok) {
           const errorData = await get_room_response.json();
-          setJoinError(errorData.detail);
+          setJoinError(errorData.detail || "Room not found.");
           return;
         }
 
         const room_data = await get_room_response.json();
         setRoomCreatorUser(room_data.creator_user);
-        const hostCheck = currentUserID === room_data.creator_id;
+
+        // Host check based on context user
+        const hostCheck = currentUser === room_data.creator_user;
         setIsHost(hostCheck);
         setInviteLink(`${window.location.origin}/room/${roomID}`);
 
-        // AWAIT joining if the user is not the host
+        // Join room if user is not the host
         if (!hostCheck) {
           const join_room_response = await fetch(
             `${apiBaseUrl}/join_room/${roomID}`,
@@ -94,7 +97,7 @@ const Room = () => {
 
           if (!join_room_response.ok) {
             const errorData = await join_room_response.json();
-            setJoinError(errorData.detail);
+            setJoinError(errorData.detail || "Unable to join room.");
             return;
           }
         }
@@ -107,7 +110,7 @@ const Room = () => {
     };
 
     initializeRoom();
-  }, [roomID]);
+  }, [roomID, loggedIn, currentUser, apiBaseUrl]);
 
   // GetUserMedia (video/audio)
   useEffect(() => {
@@ -223,7 +226,7 @@ const Room = () => {
         // JOINER: Respond to incoming offer
         else if (data.type === "offer" && !isHost) {
           console.log("Joiner received offer, setting remote description...");
-          setRoomJoinerUser(currentUser);
+          if (currentUser) setRoomJoinerUser(currentUser);
           await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
           readyForIceCandidates.current = true;
           while (pendingIceCandidates.current.length > 0) {
@@ -289,19 +292,25 @@ const Room = () => {
 
   const handleLeaveRoom = () => {
     const leaveRoom = async () => {
-      const leave_room_response = await fetch(
-        `${apiBaseUrl}/leave_room/${roomID}`,
-        {
-          method: "POST",
-          credentials: "include",
-        },
-      );
+      if (isLeaving) return; // Prevent multiple leave requests
+      setIsLeaving(true);
+      try {
+        const leave_room_response = await fetch(
+          `${apiBaseUrl}/leave_room/${roomID}`,
+          {
+            method: "POST",
+            credentials: "include",
+          },
+        );
 
-      if (leave_room_response.ok) {
-        window.location.href = "/";
-      } else {
-        const errorData = await leave_room_response.json();
-        setJoinError(errorData.detail);
+        if (leave_room_response.ok) {
+          window.location.href = "/";
+        } else {
+          const errorData = await leave_room_response.json();
+          setJoinError(errorData.detail);
+        }
+      } finally {
+        setIsLeaving(false);
       }
     };
     leaveRoom();
@@ -405,8 +414,12 @@ const Room = () => {
 
             <div className="room__actions">
               {isHost && <button onClick={handleStartGame}>Start Game</button>}
-              <button className="btn-secondary" onClick={handleLeaveRoom}>
-                Leave Room
+              <button
+                className="btn-secondary"
+                onClick={handleLeaveRoom}
+                disabled={isLeaving}
+              >
+                {isLeaving ? "Leaving..." : "Leave Room"}
               </button>
             </div>
           </div>
