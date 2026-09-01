@@ -1,17 +1,21 @@
-import { useRef, useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useRef, useState, useEffect, useContext } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { SessionContext } from "./main";
 import "./Login.css";
 
 const Login = () => {
+  const session = useContext(SessionContext);
+  if (!session) throw new Error("Login must be used within SessionContext");
+
+  const { setLoggedIn, setCurrentUser } = session;
+  const navigate = useNavigate();
+
   const userRef = useRef<HTMLInputElement>(null);
   const errRef = useRef<HTMLParagraphElement>(null);
 
   const [user, setUser] = useState("");
-
   const [pwd, setPwd] = useState("");
-
   const [errMsg, setErrMsg] = useState("");
-
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   useEffect(() => {
@@ -22,7 +26,7 @@ const Login = () => {
     setErrMsg("");
   }, [user, pwd]);
 
-  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
@@ -39,14 +43,14 @@ const Login = () => {
         credentials: "include",
       });
 
-      // console.log("Response:", response);
-
       if (response.ok) {
-        // navigate("/");
-        window.location.href = "/";
+        const responseData = await response.json();
+        setCurrentUser(responseData.session_username || user);
+        setLoggedIn(true);
+        navigate("/");
       } else {
         const responseDetails = await response.json();
-        setErrMsg(responseDetails.detail);
+        setErrMsg(responseDetails.detail || "Invalid credentials");
       }
     } catch (error) {
       setErrMsg("No response from server");
@@ -69,7 +73,6 @@ const Login = () => {
           <h1>Log In</h1>
           <form onSubmit={handleSubmit}>
             <label htmlFor="username">Username:</label>
-
             <input
               type="text"
               id="username"
@@ -89,20 +92,21 @@ const Login = () => {
               required
             />
 
-            <button disabled={user && pwd ? false : true} type="submit">
+            <button disabled={!user || !pwd || isLoggingIn} type="submit">
               {isLoggingIn ? "Logging in..." : "Log In"}
             </button>
           </form>
+
           <div className="switch">
-            Don't have an account?
-            <button>
-              <Link to="/register">Register</Link>
-            </button>
+            Don't have an account?{" "}
+            <Link to="/register" className="btn-link">
+              Register
+            </Link>
           </div>
           <br />
-          <button>
-            <Link to="/">Go to Home</Link>
-          </button>
+          <Link to="/" className="btn-link">
+            Go to Home
+          </Link>
         </section>
       </div>
     </div>
