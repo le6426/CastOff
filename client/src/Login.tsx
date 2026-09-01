@@ -12,6 +12,8 @@ const Login = () => {
 
   const [errMsg, setErrMsg] = useState("");
 
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
   useEffect(() => {
     userRef.current?.focus();
   }, []);
@@ -26,6 +28,8 @@ const Login = () => {
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
     try {
+      setIsLoggingIn(true);
+
       const response = await fetch(`${apiBaseUrl}/login`, {
         method: "POST",
         headers: {
@@ -46,6 +50,8 @@ const Login = () => {
       }
     } catch (error) {
       setErrMsg("No response from server");
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -83,7 +89,9 @@ const Login = () => {
               required
             />
 
-            <button disabled={user && pwd ? false : true}>Log In</button>
+            <button disabled={user && pwd ? false : true} type="submit">
+              {isLoggingIn ? "Logging in..." : "Log In"}
+            </button>
           </form>
           <div className="switch">
             Don't have an account?
