@@ -61,7 +61,6 @@ const Room = () => {
       // If user isn't logged in, redirect to login page
       if (!loggedIn || !currentUser) {
         setJoinError("You must be logged in to enter a room.");
-        navigate("/login");
         return;
       }
 
