@@ -15,6 +15,7 @@ interface SessionContextType {
   setLoggedIn: Dispatch<SetStateAction<boolean>>;
   currentUser: string | null;
   setCurrentUser: Dispatch<SetStateAction<string | null>>;
+  isAuthLoading: boolean; // Add this
 }
 
 export const SessionContext = createContext<SessionContextType | undefined>(
@@ -69,6 +70,7 @@ const router = createBrowserRouter([
 function RootApp() {
   const [loggedIn, setLoggedIn] = useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -84,6 +86,8 @@ function RootApp() {
         }
       } catch (error) {
         console.error("Failed to check session", error);
+      } finally {
+        setIsAuthLoading(false); // Finished checking
       }
     };
 
@@ -92,7 +96,13 @@ function RootApp() {
 
   return (
     <SessionContext.Provider
-      value={{ loggedIn, setLoggedIn, currentUser, setCurrentUser }}
+      value={{
+        loggedIn,
+        setLoggedIn,
+        currentUser,
+        setCurrentUser,
+        isAuthLoading,
+      }}
     >
       <RouterProvider router={router} />
     </SessionContext.Provider>

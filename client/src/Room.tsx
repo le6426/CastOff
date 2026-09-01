@@ -7,7 +7,7 @@ const Room = () => {
   const session = useContext(SessionContext);
   if (!session) throw new Error("Room must be used within SessionContext");
 
-  const { loggedIn, currentUser } = session;
+  const { loggedIn, currentUser, isAuthLoading } = session;
   const navigate = useNavigate();
 
   const [roomCreatorUser, setRoomCreatorUser] = useState(``);
@@ -57,6 +57,7 @@ const Room = () => {
   useEffect(() => {
     const initializeRoom = async () => {
       if (!roomID || isInitializingRef.current) return;
+      if (isAuthLoading) return;
 
       // If user isn't logged in, redirect to login page
       if (!loggedIn || !currentUser) {
@@ -109,8 +110,7 @@ const Room = () => {
     };
 
     initializeRoom();
-  }, [roomID, loggedIn, currentUser, apiBaseUrl]);
-
+  }, [roomID, loggedIn, currentUser, isAuthLoading, apiBaseUrl]);
   // GetUserMedia (video/audio)
   useEffect(() => {
     if (!readyForConnection) return;
