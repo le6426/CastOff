@@ -212,7 +212,7 @@ const Register = () => {
               Sign Up
             </button>
           </form>
-          <div>
+          <div className="switch">
             Already registered?
             <button>
               <Link to="/login">Login</Link>

@@ -43,7 +43,7 @@ const Navbar = () => {
   return (
     <nav className="navbar">
       <Link to="/" className="navbar__brand">
-        Omoggle
+        CastOff
       </Link>
       <ul className="navbar__menu">
         <li>

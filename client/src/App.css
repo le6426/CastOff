@@ -1,24 +1,163 @@
 @import "./theme.css";
 
 .landing {
-  min-height: calc(100vh - 64px);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  max-width: 640px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 48px 24px;
+  padding: 0 28px;
 }
 
-.landing h1 {
+.hero {
+  min-height: calc(100vh - 64px - 180px);
+  display: flex;
+  align-items: center;
+  gap: 56px;
+  flex-wrap: wrap;
+  padding: 72px 0 56px;
+}
+
+.hero__copy {
+  flex: 1 1 420px;
+  max-width: 520px;
+}
+
+.hero__copy h1 {
   font-family: var(--font-display);
-  font-size: clamp(2rem, 4vw, 3rem);
-  line-height: 1.15;
-  margin: 0 0 28px;
+  font-size: clamp(2.25rem, 4vw, 3.25rem);
+  line-height: 1.12;
+  margin: 0 0 20px;
   color: var(--color-text);
+}
+
+.hero__subtext {
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+  margin: 0 0 32px;
+  max-width: 46ch;
 }
 
 .landing__actions {
   display: flex;
-  gap: 12px;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.btn-link {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  padding: 10px 4px;
+}
+
+.btn-link:hover {
+  color: var(--color-text);
+}
+
+.btn-link--accent {
+  padding: 10px 18px;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: #1a1305;
+}
+
+.btn-link--accent:hover {
+  background: var(--color-accent-strong);
+  color: #1a1305;
+}
+
+.hero__preview {
+  flex: 1 1 360px;
+  max-width: 440px;
+  display: flex;
+  gap: 14px;
+}
+
+.hero__tile {
+  position: relative;
+  flex: 1;
+  aspect-ratio: 3 / 4;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  padding: 14px;
+}
+
+.hero__tile--you {
+  background: linear-gradient(
+    160deg,
+    rgba(232, 163, 61, 0.22),
+    var(--color-surface) 70%
+  );
+}
+
+.hero__tile--friend {
+  background: linear-gradient(
+    160deg,
+    rgba(79, 209, 197, 0.22),
+    var(--color-surface) 70%
+  );
+  margin-top: 32px;
+}
+
+.hero__tile-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text);
+  background: rgba(15, 27, 45, 0.6);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+}
+
+.how {
+  border-top: 1px solid var(--color-border);
+  padding: 56px 0 72px;
+}
+
+.how__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+}
+
+.how__list li {
+  display: flex;
+  gap: 16px;
+}
+
+.how__index {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.how__list h3 {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  margin: 0 0 6px;
+  color: var(--color-text);
+}
+
+.how__list p {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+@media (max-width: 720px) {
+  .how__list {
+    grid-template-columns: 1fr;
+  }
+  .hero__tile--friend {
+    margin-top: 0;
+  }
 }
