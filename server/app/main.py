@@ -26,4 +26,4 @@ app.include_router(start_game_router)
 
 @app.get("/")
 def read_root():
-    return {"status": "online", "message": "FastAPI is up and running!"}
+    return {"status": "online", "message": "FastAPI is up and running!"} 
