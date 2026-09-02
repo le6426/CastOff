@@ -58,7 +58,7 @@ def create_session(user_id: str):
     with get_connection() as conn:
         with conn.cursor() as cur:
             current_time = datetime.now(timezone.utc)
-            expiration_time = current_time + timedelta(minutes=15)
+            expiration_time = current_time + timedelta(hours=3)
             cur.execute(
                 "INSERT INTO sessions (user_id, created_at, expires_at) VALUES (%s, %s, %s) RETURNING id",
                 (user_id, current_time, expiration_time)
