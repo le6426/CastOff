@@ -1,2 +1,2 @@
-# OmoggleV2
-Remake of omoggle
+# CastOff
+Online Video Battler
