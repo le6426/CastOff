@@ -3,6 +3,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import App from "./App.tsx";
 import Register from "./Register.tsx";
 import Login from "./Login.tsx";
@@ -113,5 +114,6 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <RootApp />
     <Analytics />
+    <SpeedInsights />
   </StrictMode>,
 );
