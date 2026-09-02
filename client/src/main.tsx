@@ -2,7 +2,7 @@ import { StrictMode, useState, useEffect, createContext } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
-
+import { Analytics } from "@vercel/analytics/next";
 import App from "./App.tsx";
 import Register from "./Register.tsx";
 import Login from "./Login.tsx";
@@ -112,5 +112,6 @@ function RootApp() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <RootApp />
+    <Analytics />
   </StrictMode>,
 );
