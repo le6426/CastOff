@@ -26,6 +26,10 @@ const Room = () => {
   const joinerVideoRef = useRef<HTMLVideoElement | null>(null);
   const localVideoRef = isHost ? hostVideoRef : joinerVideoRef;
   const gestureState = useGestureDetection(localVideoRef);
+  const [opponentCharge, setOpponentCharge] = useState<{
+    ability: string;
+    startTime: number;
+  } | null>(null);
   // Ref to store local stream so WebRTC can access it later
   const localStreamRef = useRef<MediaStream | null>(null);
 

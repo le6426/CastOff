@@ -60,12 +60,12 @@ function areFingersSpread(landmarks: NormalizedLandmark[]): boolean {
   const gapRingPinky = distance(landmarks[16], landmarks[20]) / palmWidth;
 
   // TEMP debug
-  console.log(
-    "gaps:",
-    gapIndexMiddle.toFixed(3),
-    gapMiddleRing.toFixed(3),
-    gapRingPinky.toFixed(3),
-  );
+  // console.log(
+  //   "gaps:",
+  //   gapIndexMiddle.toFixed(3),
+  //   gapMiddleRing.toFixed(3),
+  //   gapRingPinky.toFixed(3),
+  // );
 
   return (
     gapIndexMiddle > SEPARATION_THRESHOLD &&
@@ -93,7 +93,7 @@ function isPalmFacingCamera(landmarks: NormalizedLandmark[]): boolean {
   const normalZ = v1.x * v2.y - v1.y * v2.x;
 
   // TEMP debug
-  console.log("normalZ:", normalZ.toFixed(4));
+  // console.log("normalZ:", normalZ.toFixed(4));
 
   return normalZ > 0;
 }
@@ -180,12 +180,12 @@ export function useGestureDetection(
             : null;
 
         // TEMP debug
-        console.log(
-          "hands detected:",
-          result.landmarks.length,
-          "gesture:",
-          detected,
-        );
+        // console.log(
+        //   "hands detected:",
+        //   result.landmarks.length,
+        //   "gesture:",
+        //   detected,
+        // );
 
         applyTransition(detected, now);
       }

@@ -108,6 +108,7 @@
   object-fit: cover;
   background: #000;
   display: block;
+  transform: scaleX(-1); /* Mirrors the video element */
 }
 
 .video-tile__overlay {
