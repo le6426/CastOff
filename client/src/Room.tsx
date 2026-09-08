@@ -602,8 +602,10 @@ const Room = () => {
             >
               status: {gestureState.status} | ability:{" "}
               {gestureState.ability ?? "none"} | castId: {gestureState.castId} |
-              opp: {opponentCharge?.ability ?? "none"} | result:{" "}
-              {opponentCharge?.result ?? "-"}
+              opp_fireball: {opponentCharge?.ability ?? "none"} | result:{" "}
+              {opponentCharge?.result ?? "-"} | opp_shield:{" "}
+              {opponentShieldActive ? "active" : "inactive"} | my_shield:{" "}
+              {gestureState.shieldActive ? "active" : "inactive"}
             </div>
           </div>
         </div>
