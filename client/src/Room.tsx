@@ -28,10 +28,12 @@ const Room = () => {
   const localCanvasRef = useRef<HTMLCanvasElement>(null);
 
   const gestureState = useGestureDetection(localVideoRef, localCanvasRef);
-  // const [opponentCharge, setOpponentCharge] = useState<{
-  //   ability: string;
-  //   startTime: number;
-  // } | null>(null);
+  const [opponentCharge, setOpponentCharge] = useState<{
+    ability: string;
+    startTime: number;
+  } | null>(null);
+  const prevStatusRef = useRef<"idle" | "charging" | "confirmed">("idle");
+  const prevCastIdRef = useRef<number>(0);
   // Ref to store local stream so WebRTC can access it later
   const localStreamRef = useRef<MediaStream | null>(null);
 
@@ -119,6 +121,7 @@ const Room = () => {
 
     initializeRoom();
   }, [roomID, loggedIn, currentUser, isAuthLoading, apiBaseUrl]);
+
   // GetUserMedia (video/audio)
   useEffect(() => {
     if (!readyForConnection) return;
@@ -280,6 +283,30 @@ const Room = () => {
           setJoinerScore(data.joinerScore);
           setGameWinner(data.winner);
         }
+
+        // OPPONENT: started charging an ability
+        else if (data.type === "charging_started") {
+          setOpponentCharge({ ability: data.ability, startTime: Date.now() });
+        }
+
+        // OPPONENT: successfully cast — flash "success" briefly, then clear
+        else if (data.type === "cast_confirmed") {
+          setOpponentCharge((prev) =>
+            prev ? { ...prev, result: "success" } : prev,
+          );
+          // TODO: apply damage based on data.ability
+
+          setTimeout(() => {
+            setOpponentCharge((prev) =>
+              prev?.result === "success" ? null : prev,
+            );
+          }, 500);
+        }
+
+        // OPPONENT: charge was cancelled/interrupted
+        else if (data.type === "charging_cancelled") {
+          setOpponentCharge(null);
+        }
       } catch (err) {
         console.error("Error processing WebSocket message:", err);
       }
@@ -296,6 +323,51 @@ const Room = () => {
       wsRef.current = null;
     };
   }, [readyForConnection, isMediaReady, isHost, roomID]);
+
+  // Send gesture state changes to the opponent over the existing WebSocket
+  useEffect(() => {
+    const ws = wsRef.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+    const wasCharging = prevStatusRef.current === "charging";
+    const isNowCharging = gestureState.status === "charging";
+    const castIdChanged = gestureState.castId !== prevCastIdRef.current;
+
+    // idle/confirmed -> charging: notify opponent charging started
+    if (isNowCharging && !wasCharging) {
+      ws.send(
+        JSON.stringify({
+          type: "charging_started",
+          role: isHost ? "host" : "joiner",
+          ability: gestureState.ability,
+        }),
+      );
+    }
+
+    // castId incremented: notify opponent the cast completed
+    if (castIdChanged) {
+      ws.send(
+        JSON.stringify({
+          type: "cast_confirmed",
+          role: isHost ? "host" : "joiner",
+          ability: gestureState.ability,
+        }),
+      );
+    }
+
+    // charging -> idle, but NOT via a confirm: charge was cancelled
+    if (wasCharging && gestureState.status === "idle" && !castIdChanged) {
+      ws.send(
+        JSON.stringify({
+          type: "charging_cancelled",
+          role: isHost ? "host" : "joiner",
+        }),
+      );
+    }
+
+    prevStatusRef.current = gestureState.status;
+    prevCastIdRef.current = gestureState.castId;
+  }, [gestureState, isHost]);
 
   const handleLeaveRoom = () => {
     const leaveRoom = async () => {
