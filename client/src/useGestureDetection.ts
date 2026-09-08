@@ -59,14 +59,6 @@ function areFingersSpread(landmarks: NormalizedLandmark[]): boolean {
   const gapMiddleRing = distance(landmarks[12], landmarks[16]) / palmWidth;
   const gapRingPinky = distance(landmarks[16], landmarks[20]) / palmWidth;
 
-  // TEMP debug
-  // console.log(
-  //   "gaps:",
-  //   gapIndexMiddle.toFixed(3),
-  //   gapMiddleRing.toFixed(3),
-  //   gapRingPinky.toFixed(3),
-  // );
-
   return (
     gapIndexMiddle > SEPARATION_THRESHOLD &&
     gapMiddleRing > SEPARATION_THRESHOLD &&
@@ -74,7 +66,10 @@ function areFingersSpread(landmarks: NormalizedLandmark[]): boolean {
   );
 }
 
-function isPalmFacingCamera(landmarks: NormalizedLandmark[]): boolean {
+function isPalmFacingCamera(
+  landmarks: NormalizedLandmark[],
+  handedness: string,
+): boolean {
   const wrist = landmarks[0];
   const indexMcp = landmarks[5];
   const pinkyMcp = landmarks[17];
@@ -92,22 +87,28 @@ function isPalmFacingCamera(landmarks: NormalizedLandmark[]): boolean {
 
   const normalZ = v1.x * v2.y - v1.y * v2.x;
 
-  // TEMP debug
-  // console.log("normalZ:", normalZ.toFixed(4));
-
-  return normalZ > 0;
+  // Winding flips between left/right hands (mirror-image chirality),
+  // so the sign that means "facing camera" flips too.
+  // Verified empirically: this hand's label facing camera -> normalZ > 0.
+  return handedness === "Right" ? normalZ > 0 : normalZ < 0;
 }
 
 /**
  * Given a single hand's landmarks, return the ability name this gesture
  * corresponds to, or null if it doesn't match any recognized gesture.
  */
-function classifyGesture(landmarks: NormalizedLandmark[]): string | null {
+function classifyGesture(
+  landmarks: NormalizedLandmark[],
+  handedness: string,
+): string | null {
   if (isIndexPointingUp(landmarks)) {
     return "fireball";
   }
 
-  if (areFingersSpread(landmarks) && isPalmFacingCamera(landmarks)) {
+  if (
+    areFingersSpread(landmarks) &&
+    isPalmFacingCamera(landmarks, handedness)
+  ) {
     return "shield";
   }
 
@@ -176,16 +177,11 @@ export function useGestureDetection(
 
         const detected: string | null =
           result.landmarks.length > 0
-            ? classifyGesture(result.landmarks[0])
+            ? classifyGesture(
+                result.landmarks[0],
+                result.handedness[0][0].categoryName,
+              )
             : null;
-
-        // TEMP debug
-        // console.log(
-        //   "hands detected:",
-        //   result.landmarks.length,
-        //   "gesture:",
-        //   detected,
-        // );
 
         applyTransition(detected, now);
       }
