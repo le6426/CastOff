@@ -396,7 +396,9 @@ const Room = () => {
     };
   }, [readyForConnection, isMediaReady, isHost, roomID]);
 
-  // Send fireball gesture state changes to the opponent over the existing WebSocket
+  // Sending fireball
+  const lastChargingAbilityRef = useRef<string | null>(null);
+
   useEffect(() => {
     const ws = wsRef.current;
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
@@ -405,8 +407,8 @@ const Room = () => {
     const isNowCharging = gestureState.status === "charging";
     const castIdChanged = gestureState.castId !== prevCastIdRef.current;
 
-    // idle/confirmed -> charging: notify opponent charging started
     if (isNowCharging && !wasCharging) {
+      lastChargingAbilityRef.current = gestureState.ability; // remember it here
       ws.send(
         JSON.stringify({
           type: "charging_started",
@@ -416,18 +418,16 @@ const Room = () => {
       );
     }
 
-    // castId incremented: notify opponent the cast completed
     if (castIdChanged) {
       ws.send(
         JSON.stringify({
           type: "cast_confirmed",
           role: isHost ? "host" : "joiner",
-          ability: gestureState.ability,
+          ability: lastChargingAbilityRef.current, // use the remembered value, not gestureState.ability
         }),
       );
     }
 
-    // charging -> idle, but NOT via a confirm: charge was cancelled
     if (wasCharging && gestureState.status === "idle" && !castIdChanged) {
       ws.send(
         JSON.stringify({
