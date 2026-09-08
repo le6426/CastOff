@@ -622,10 +622,10 @@ const Room = () => {
                 <div className="video-tile__hp-bar-bg">
                   <div
                     className="video-tile__hp-bar-fill"
-                    style={{ width: `${hostHP}%` }}
+                    style={{ width: `${joinerHP}%` }}
                   />
                 </div>
-                <span className="video-tile__hp-text">{hostHP} / 100</span>
+                <span className="video-tile__hp-text">{joinerHP} / 100</span>
               </div>
             </div>
 

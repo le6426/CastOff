@@ -146,3 +146,35 @@
   font-size: 0.95rem;
   margin-bottom: 16px;
 }
+
+.video-tile__hp {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(15, 27, 45, 0.7);
+  border-radius: var(--radius-sm);
+  backdrop-filter: blur(4px);
+}
+
+.video-tile__hp-bar-bg {
+  width: 150px;
+  height: 12px;
+  background: #333;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.video-tile__hp-bar-fill {
+  height: 100%;
+  background: #e74c3c;
+  transition: width 0.3s ease;
+}
+
+.video-tile__hp-text {
+  font-size: 0.8rem;
+  color: white;
+}
