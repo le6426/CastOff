@@ -31,6 +31,7 @@ const Room = () => {
   const [opponentCharge, setOpponentCharge] = useState<{
     ability: string;
     startTime: number;
+    result?: "success";
   } | null>(null);
   const prevStatusRef = useRef<"idle" | "charging" | "confirmed">("idle");
   const prevCastIdRef = useRef<number>(0);
@@ -574,7 +575,9 @@ const Room = () => {
               }}
             >
               status: {gestureState.status} | ability:{" "}
-              {gestureState.ability ?? "none"} | castId: {gestureState.castId}
+              {gestureState.ability ?? "none"} | castId: {gestureState.castId} |
+              opp: {opponentCharge?.ability ?? "none"} | result:{" "}
+              {opponentCharge?.result ?? "-"}
             </div>
           </div>
         </div>
