@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useContext } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { SessionContext } from "./main";
 import "./Room.css";
-
+import { useGestureDetection } from "./useGestureDetection";
 const Room = () => {
   const session = useContext(SessionContext);
   if (!session) throw new Error("Room must be used within SessionContext");
@@ -24,6 +24,8 @@ const Room = () => {
   // Video element refs
   const hostVideoRef = useRef<HTMLVideoElement | null>(null);
   const joinerVideoRef = useRef<HTMLVideoElement | null>(null);
+  const localVideoRef = isHost ? hostVideoRef : joinerVideoRef;
+  const gestureState = useGestureDetection(localVideoRef);
   // Ref to store local stream so WebRTC can access it later
   const localStreamRef = useRef<MediaStream | null>(null);
 
@@ -453,6 +455,22 @@ const Room = () => {
                 </span>
                 <span className="video-tile__score">Score: {joinerScore}</span>
               </div>
+            </div>
+
+            <div
+              style={{
+                position: "fixed",
+                top: 10,
+                left: 10,
+                background: "black",
+                color: "lime",
+                padding: "8px",
+                fontFamily: "monospace",
+                zIndex: 999,
+              }}
+            >
+              status: {gestureState.status} | ability:{" "}
+              {gestureState.ability ?? "none"} | castId: {gestureState.castId}
             </div>
           </div>
         </div>
