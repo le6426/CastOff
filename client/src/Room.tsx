@@ -17,8 +17,8 @@ const Room = () => {
   const [joinError, setJoinError] = useState(``);
   const [readyForConnection, setReadyForConnection] = useState(false);
   const [isMediaReady, setIsMediaReady] = useState(false);
-  const [hostScore, setHostScore] = useState(0);
-  const [joinerScore, setJoinerScore] = useState(0);
+  const [hostHP, setHostHP] = useState(100);
+  const [joinerHP, setJoinerHP] = useState(100);
   const [gameWinner, setGameWinner] = useState(``);
 
   // Video element refs
@@ -28,6 +28,10 @@ const Room = () => {
   const localCanvasRef = useRef<HTMLCanvasElement>(null);
 
   const gestureState = useGestureDetection(localVideoRef, localCanvasRef);
+  const gestureStateRef = useRef(gestureState);
+  useEffect(() => {
+    gestureStateRef.current = gestureState;
+  }, [gestureState]);
   const [opponentCharge, setOpponentCharge] = useState<{
     ability: string;
     startTime: number;
@@ -37,6 +41,25 @@ const Room = () => {
   const prevCastIdRef = useRef<number>(0);
   const prevShieldActiveRef = useRef<boolean>(false);
   const [opponentShieldActive, setOpponentShieldActive] = useState(false);
+
+  const hostHPRef = useRef(hostHP);
+  const joinerHPRef = useRef(joinerHP);
+
+  useEffect(() => {
+    hostHPRef.current = hostHP;
+  }, [hostHP]);
+
+  useEffect(() => {
+    joinerHPRef.current = joinerHP;
+  }, [joinerHP]);
+
+  const checkForWinner = () => {
+    if (hostHPRef.current <= 0) {
+      setGameWinner(roomJoinerUser);
+    } else if (joinerHPRef.current <= 0) {
+      setGameWinner(roomCreatorUser);
+    }
+  };
   // Ref to store local stream so WebRTC can access it later
   const localStreamRef = useRef<MediaStream | null>(null);
 
@@ -281,12 +304,58 @@ const Room = () => {
         }
 
         // JOINER: Checks game results
-        else if (data.type === "game_results") {
-          setHostScore(data.hostScore);
-          setJoinerScore(data.joinerScore);
-          setGameWinner(data.winner);
-        }
+        else if (data.type === "cast_confirmed") {
+          setOpponentCharge((prev) =>
+            prev ? { ...prev, result: "success" } : prev,
+          );
 
+          if (data.ability === "fireball") {
+            const iAmShielded = gestureStateRef.current.shieldActive;
+            if (!iAmShielded) {
+              // My HP goes down — I'm the one being hit
+              if (isHost) {
+                setHostHP((prev) => {
+                  const newHP = Math.max(0, prev - 20);
+                  ws.send(
+                    JSON.stringify({
+                      type: "hp_update",
+                      role: "host",
+                      hp: newHP,
+                    }),
+                  );
+                  checkForWinner();
+                  return newHP;
+                });
+              } else {
+                setJoinerHP((prev) => {
+                  const newHP = Math.max(0, prev - 20);
+                  ws.send(
+                    JSON.stringify({
+                      type: "hp_update",
+                      role: "joiner",
+                      hp: newHP,
+                    }),
+                  );
+                  checkForWinner();
+                  return newHP;
+                });
+              }
+            }
+          }
+
+          setTimeout(() => {
+            setOpponentCharge((prev) =>
+              prev?.result === "success" ? null : prev,
+            );
+          }, 500);
+        } else if (data.type === "hp_update") {
+          if (data.role === "host") {
+            setHostHP(data.hp);
+          } else {
+            setJoinerHP(data.hp);
+          }
+          checkForWinner();
+        }
         // OPPONENT: started charging an ability
         else if (data.type === "charging_started") {
           setOpponentCharge({ ability: data.ability, startTime: Date.now() });
@@ -441,41 +510,7 @@ const Room = () => {
   }, [roomID]);
 
   const handleStartGame = () => {
-    const startGame = async () => {
-      const start_game_response = await fetch(
-        `${apiBaseUrl}/start_game/${roomID}`,
-      );
-      const start_data = await start_game_response.json();
-      if (start_game_response.ok) {
-        console.log("HOST SCORE:", start_data.host_score);
-        console.log("JOINER SCORE:", start_data.joiner_score);
-
-        const { host_score, joiner_score } = start_data;
-
-        setHostScore(host_score);
-        setJoinerScore(joiner_score);
-
-        let winner = "Tie";
-        if (host_score < joiner_score) {
-          winner = roomJoinerUser;
-        } else if (host_score > joiner_score) {
-          winner = roomCreatorUser;
-        }
-        setGameWinner(winner);
-
-        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-          wsRef.current.send(
-            JSON.stringify({
-              type: "game_results",
-              hostScore: host_score,
-              joinerScore: joiner_score,
-              winner: winner,
-            }),
-          );
-        }
-      }
-    };
-    startGame();
+    console.log("game started");
   };
 
   return (
@@ -556,7 +591,7 @@ const Room = () => {
                 <span className="video-tile__name">
                   {roomCreatorUser} (Host)
                 </span>
-                <span className="video-tile__score">Score: {hostScore}</span>
+                <span className="video-tile__score">HP: {hostHP}</span>
               </div>
             </div>
             <div className="video-tile" style={{ position: "relative" }}>
@@ -584,7 +619,7 @@ const Room = () => {
                 <span className="video-tile__name">
                   {roomJoinerUser || "Waiting for joiner..."}
                 </span>
-                <span className="video-tile__score">Score: {joinerScore}</span>
+                <span className="video-tile__score">Score: {joinerHP}</span>
               </div>
             </div>
 
