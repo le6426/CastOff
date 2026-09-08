@@ -126,6 +126,7 @@ export function useGestureDetection(
 
   const landmarkerRef = useRef<HandLandmarker | null>(null);
   const rafRef = useRef<number | null>(null);
+  const frameCountRef = useRef<number>(0); // TEMP debug
 
   // Internal timing state — doesn't need to be React state,
   // since nothing outside the loop reads it directly.
@@ -197,6 +198,18 @@ export function useGestureDetection(
             handLabel,
           );
           lastLoggedRef.current = detected;
+        }
+
+        // TEMP debug — geometric left/right signal, logged every ~15 frames
+        frameCountRef.current += 1;
+        if (result.landmarks.length > 0 && frameCountRef.current % 15 === 0) {
+          const lm = result.landmarks[0];
+          console.log(
+            "x5 - x17:",
+            (lm[5].x - lm[17].x).toFixed(3),
+            "| hand label:",
+            handLabel,
+          );
         }
 
         applyTransition(detected, now);
