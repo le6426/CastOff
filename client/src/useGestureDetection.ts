@@ -166,6 +166,7 @@ export function useGestureDetection(
   }, []);
 
   // Main detection loop.
+  const lastLoggedRef = useRef<string | null>("__init__");
   useEffect(() => {
     const loop = () => {
       const video = videoRef.current;
@@ -175,13 +176,28 @@ export function useGestureDetection(
         const now = performance.now();
         const result = landmarker.detectForVideo(video, now);
 
-        const detected: string | null =
-          result.landmarks.length > 0
-            ? classifyGesture(
-                result.landmarks[0],
-                result.handedness[0][0].categoryName,
-              )
+        const handLabel =
+          result.handedness.length > 0
+            ? result.handedness[0][0].categoryName
             : null;
+
+        const detected: string | null =
+          result.landmarks.length > 0 && handLabel
+            ? classifyGesture(result.landmarks[0], handLabel)
+            : null;
+
+        // TEMP debug — only logs when the result actually changes
+        if (detected !== lastLoggedRef.current) {
+          console.log(
+            "gesture changed:",
+            lastLoggedRef.current,
+            "->",
+            detected,
+            "| hand:",
+            handLabel,
+          );
+          lastLoggedRef.current = detected;
+        }
 
         applyTransition(detected, now);
       }
