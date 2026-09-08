@@ -109,8 +109,61 @@ function classifyGesture(landmarks: NormalizedLandmark[]): string | null {
   return null;
 }
 
+// Same 21-point connection topology as MediaPipe's HAND_CONNECTIONS.
+const HAND_CONNECTIONS: Array<[number, number]> = [
+  [0, 1],
+  [1, 2],
+  [2, 3],
+  [3, 4], // thumb
+  [0, 5],
+  [5, 6],
+  [6, 7],
+  [7, 8], // index
+  [5, 9],
+  [9, 10],
+  [10, 11],
+  [11, 12], // middle
+  [9, 13],
+  [13, 14],
+  [14, 15],
+  [15, 16], // ring
+  [13, 17],
+  [17, 18],
+  [18, 19],
+  [19, 20], // pinky
+  [0, 17], // palm base
+];
+
+function drawHandSkeleton(
+  ctx: CanvasRenderingContext2D,
+  landmarks: NormalizedLandmark[],
+  width: number,
+  height: number,
+) {
+  ctx.clearRect(0, 0, width, height);
+
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 2;
+  for (const [startIdx, endIdx] of HAND_CONNECTIONS) {
+    const start = landmarks[startIdx];
+    const end = landmarks[endIdx];
+    ctx.beginPath();
+    ctx.moveTo(start.x * width, start.y * height);
+    ctx.lineTo(end.x * width, end.y * height);
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = "#ff0000";
+  for (const point of landmarks) {
+    ctx.beginPath();
+    ctx.arc(point.x * width, point.y * height, 4, 0, 2 * Math.PI);
+    ctx.fill();
+  }
+}
+
 export function useGestureDetection(
   videoRef: React.RefObject<HTMLVideoElement | null>,
+  canvasRef?: React.RefObject<HTMLCanvasElement | null>,
 ) {
   const [state, setState] = useState<GestureDetectionState>({
     status: "idle",
@@ -173,6 +226,31 @@ export function useGestureDetection(
           result.landmarks.length > 0
             ? classifyGesture(result.landmarks[0])
             : null;
+
+        const canvas = canvasRef?.current;
+        if (canvas) {
+          // Keep canvas pixel size in sync with the video's displayed size.
+          if (
+            canvas.width !== video.videoWidth ||
+            canvas.height !== video.videoHeight
+          ) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+          }
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            if (result.landmarks.length > 0) {
+              drawHandSkeleton(
+                ctx,
+                result.landmarks[0],
+                canvas.width,
+                canvas.height,
+              );
+            } else {
+              ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+          }
+        }
 
         applyTransition(detected, now);
       }

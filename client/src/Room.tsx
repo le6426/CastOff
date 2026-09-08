@@ -25,7 +25,9 @@ const Room = () => {
   const hostVideoRef = useRef<HTMLVideoElement | null>(null);
   const joinerVideoRef = useRef<HTMLVideoElement | null>(null);
   const localVideoRef = isHost ? hostVideoRef : joinerVideoRef;
-  const gestureState = useGestureDetection(localVideoRef);
+  const localCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  const gestureState = useGestureDetection(localVideoRef, localCanvasRef);
   // const [opponentCharge, setOpponentCharge] = useState<{
   //   ability: string;
   //   startTime: number;
@@ -430,7 +432,7 @@ const Room = () => {
           </div>
 
           <div className="room__stage">
-            <div className="video-tile">
+            <div className="video-tile" style={{ position: "relative" }}>
               <video
                 ref={hostVideoRef}
                 autoPlay
@@ -438,6 +440,19 @@ const Room = () => {
                 muted={isHost}
                 className="video-tile__video"
               />
+              {isHost && (
+                <canvas
+                  ref={localCanvasRef}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                    transform: "scaleX(-1)",
+                  }}
+                />
+              )}
               <div className="video-tile__overlay">
                 <span className="video-tile__name">
                   {roomCreatorUser} (Host)
@@ -445,7 +460,7 @@ const Room = () => {
                 <span className="video-tile__score">Score: {hostScore}</span>
               </div>
             </div>
-            <div className="video-tile">
+            <div className="video-tile" style={{ position: "relative" }}>
               <video
                 ref={joinerVideoRef}
                 autoPlay
@@ -453,6 +468,19 @@ const Room = () => {
                 muted={!isHost}
                 className="video-tile__video"
               />
+              {!isHost && (
+                <canvas
+                  ref={localCanvasRef}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                    transform: "scaleX(-1)",
+                  }}
+                />
+              )}
               <div className="video-tile__overlay">
                 <span className="video-tile__name">
                   {roomJoinerUser || "Waiting for joiner..."}
