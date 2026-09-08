@@ -87,11 +87,10 @@ function isPalmFacingCamera(landmarks: NormalizedLandmark[]): boolean {
   // Chirality signal derived directly from landmark geometry (stable),
   // rather than MediaPipe's separate handedness classifier (unstable —
   // flickers between Left/Right when the palm faces the camera directly).
-  // Negative x5 - x17 empirically corresponds to the hand that needs
-  // normalZ < 0 to mean "facing camera"; the mirror-image hand needs > 0.
+  // Empirically confirmed: x5 - x17 < 0 (this hand) facing camera -> normalZ > 0.
   const isChiralityA = indexMcp.x - pinkyMcp.x < 0;
 
-  return isChiralityA ? normalZ < 0 : normalZ > 0;
+  return isChiralityA ? normalZ > 0 : normalZ < 0;
 }
 
 /**
