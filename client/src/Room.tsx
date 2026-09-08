@@ -591,7 +591,15 @@ const Room = () => {
                 <span className="video-tile__name">
                   {roomCreatorUser} (Host)
                 </span>
-                <span className="video-tile__score">HP: {hostHP}</span>
+                <div className="video-tile__hp">
+                  <div className="video-tile__hp-bar-bg">
+                    <div
+                      className="video-tile__hp-bar-fill"
+                      style={{ width: `${hostHP}%` }}
+                    />
+                  </div>
+                  <span className="video-tile__hp-text">{hostHP} / 100</span>
+                </div>
               </div>
             </div>
             <div className="video-tile" style={{ position: "relative" }}>
@@ -619,7 +627,15 @@ const Room = () => {
                 <span className="video-tile__name">
                   {roomJoinerUser || "Waiting for joiner..."}
                 </span>
-                <span className="video-tile__score">Score: {joinerHP}</span>
+                <div className="video-tile__hp">
+                  <div className="video-tile__hp-bar-bg">
+                    <div
+                      className="video-tile__hp-bar-fill"
+                      style={{ width: `${hostHP}%` }}
+                    />
+                  </div>
+                  <span className="video-tile__hp-text">{hostHP} / 100</span>
+                </div>{" "}
               </div>
             </div>
 
