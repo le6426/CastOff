@@ -174,6 +174,14 @@ export function useGestureDetection(
             ? classifyGesture(result.landmarks[0])
             : null;
 
+        // TEMP debug
+        console.log(
+          "hands detected:",
+          result.landmarks.length,
+          "gesture:",
+          detected,
+        );
+
         applyTransition(detected, now);
       }
 
