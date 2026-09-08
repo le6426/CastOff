@@ -587,19 +587,14 @@ const Room = () => {
                   }}
                 />
               )}
-              <div className="video-tile__overlay">
-                <span className="video-tile__name">
-                  {roomCreatorUser} (Host)
-                </span>
-                <div className="video-tile__hp">
-                  <div className="video-tile__hp-bar-bg">
-                    <div
-                      className="video-tile__hp-bar-fill"
-                      style={{ width: `${hostHP}%` }}
-                    />
-                  </div>
-                  <span className="video-tile__hp-text">{hostHP} / 100</span>
+              <div className="video-tile__hp">
+                <div className="video-tile__hp-bar-bg">
+                  <div
+                    className="video-tile__hp-bar-fill"
+                    style={{ width: `${hostHP}%` }}
+                  />
                 </div>
+                <span className="video-tile__hp-text">{hostHP} / 100</span>
               </div>
             </div>
             <div className="video-tile" style={{ position: "relative" }}>
@@ -623,19 +618,14 @@ const Room = () => {
                   }}
                 />
               )}
-              <div className="video-tile__overlay">
-                <span className="video-tile__name">
-                  {roomJoinerUser || "Waiting for joiner..."}
-                </span>
-                <div className="video-tile__hp">
-                  <div className="video-tile__hp-bar-bg">
-                    <div
-                      className="video-tile__hp-bar-fill"
-                      style={{ width: `${hostHP}%` }}
-                    />
-                  </div>
-                  <span className="video-tile__hp-text">{hostHP} / 100</span>
-                </div>{" "}
+              <div className="video-tile__hp">
+                <div className="video-tile__hp-bar-bg">
+                  <div
+                    className="video-tile__hp-bar-fill"
+                    style={{ width: `${hostHP}%` }}
+                  />
+                </div>
+                <span className="video-tile__hp-text">{hostHP} / 100</span>
               </div>
             </div>
 
