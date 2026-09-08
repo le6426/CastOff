@@ -305,6 +305,13 @@ const Room = () => {
 
         // JOINER: Checks game results
         else if (data.type === "cast_confirmed") {
+          console.log("cast_confirmed received:", {
+            dataRole: data.role,
+            ability: data.ability,
+            myIsHost: isHost,
+            iAmShielded: gestureStateRef.current.shieldActive,
+          });
+
           setOpponentCharge((prev) =>
             prev ? { ...prev, result: "success" } : prev,
           );
@@ -359,20 +366,6 @@ const Room = () => {
         // OPPONENT: started charging an ability
         else if (data.type === "charging_started") {
           setOpponentCharge({ ability: data.ability, startTime: Date.now() });
-        }
-
-        // OPPONENT: successfully cast — flash "success" briefly, then clear
-        else if (data.type === "cast_confirmed") {
-          setOpponentCharge((prev) =>
-            prev ? { ...prev, result: "success" } : prev,
-          );
-          // TODO: apply damage based on data.ability
-
-          setTimeout(() => {
-            setOpponentCharge((prev) =>
-              prev?.result === "success" ? null : prev,
-            );
-          }, 500);
         }
 
         // OPPONENT: charge was cancelled/interrupted
