@@ -59,6 +59,14 @@ function areFingersSpread(landmarks: NormalizedLandmark[]): boolean {
   const gapMiddleRing = distance(landmarks[12], landmarks[16]) / palmWidth;
   const gapRingPinky = distance(landmarks[16], landmarks[20]) / palmWidth;
 
+  // TEMP debug
+  console.log(
+    "gaps:",
+    gapIndexMiddle.toFixed(3),
+    gapMiddleRing.toFixed(3),
+    gapRingPinky.toFixed(3),
+  );
+
   return (
     gapIndexMiddle > SEPARATION_THRESHOLD &&
     gapMiddleRing > SEPARATION_THRESHOLD &&
@@ -71,7 +79,6 @@ function isPalmFacingCamera(landmarks: NormalizedLandmark[]): boolean {
   const indexMcp = landmarks[5];
   const pinkyMcp = landmarks[17];
 
-  // Two vectors lying roughly in the plane of the palm.
   const v1 = {
     x: indexMcp.x - wrist.x,
     y: indexMcp.y - wrist.y,
@@ -83,12 +90,10 @@ function isPalmFacingCamera(landmarks: NormalizedLandmark[]): boolean {
     z: pinkyMcp.z - wrist.z,
   };
 
-  // Cross product v1 x v2 gives a vector perpendicular to the palm.
   const normalZ = v1.x * v2.y - v1.y * v2.x;
-  // Note: using the 2D (x,y) cross product's implied z-component here
-  // is sufficient to distinguish palm-toward-camera vs away, since a
-  // mirrored (BGR->RGB flipped) or non-mirrored feed affects the sign —
-  // verify against your actual camera feed and flip the comparison if needed.
+
+  // TEMP debug
+  console.log("normalZ:", normalZ.toFixed(4));
 
   return normalZ < 0;
 }
