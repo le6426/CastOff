@@ -66,10 +66,7 @@ function areFingersSpread(landmarks: NormalizedLandmark[]): boolean {
   );
 }
 
-function isPalmFacingCamera(
-  landmarks: NormalizedLandmark[],
-  handedness: string,
-): boolean {
+function isPalmFacingCamera(landmarks: NormalizedLandmark[]): boolean {
   const wrist = landmarks[0];
   const indexMcp = landmarks[5];
   const pinkyMcp = landmarks[17];
@@ -87,28 +84,26 @@ function isPalmFacingCamera(
 
   const normalZ = v1.x * v2.y - v1.y * v2.x;
 
-  // Winding flips between left/right hands (mirror-image chirality),
-  // so the sign that means "facing camera" flips too.
-  // Verified empirically: this hand's label facing camera -> normalZ > 0.
-  return handedness === "Right" ? normalZ > 0 : normalZ < 0;
+  // Chirality signal derived directly from landmark geometry (stable),
+  // rather than MediaPipe's separate handedness classifier (unstable —
+  // flickers between Left/Right when the palm faces the camera directly).
+  // Negative x5 - x17 empirically corresponds to the hand that needs
+  // normalZ < 0 to mean "facing camera"; the mirror-image hand needs > 0.
+  const isChiralityA = indexMcp.x - pinkyMcp.x < 0;
+
+  return isChiralityA ? normalZ < 0 : normalZ > 0;
 }
 
 /**
  * Given a single hand's landmarks, return the ability name this gesture
  * corresponds to, or null if it doesn't match any recognized gesture.
  */
-function classifyGesture(
-  landmarks: NormalizedLandmark[],
-  handedness: string,
-): string | null {
+function classifyGesture(landmarks: NormalizedLandmark[]): string | null {
   if (isIndexPointingUp(landmarks)) {
     return "fireball";
   }
 
-  if (
-    areFingersSpread(landmarks) &&
-    isPalmFacingCamera(landmarks, handedness)
-  ) {
+  if (areFingersSpread(landmarks) && isPalmFacingCamera(landmarks)) {
     return "shield";
   }
 
@@ -126,7 +121,6 @@ export function useGestureDetection(
 
   const landmarkerRef = useRef<HandLandmarker | null>(null);
   const rafRef = useRef<number | null>(null);
-  const frameCountRef = useRef<number>(0); // TEMP debug
 
   // Internal timing state — doesn't need to be React state,
   // since nothing outside the loop reads it directly.
@@ -167,7 +161,6 @@ export function useGestureDetection(
   }, []);
 
   // Main detection loop.
-  const lastLoggedRef = useRef<string | null>("__init__");
   useEffect(() => {
     const loop = () => {
       const video = videoRef.current;
@@ -177,40 +170,10 @@ export function useGestureDetection(
         const now = performance.now();
         const result = landmarker.detectForVideo(video, now);
 
-        const handLabel =
-          result.handedness.length > 0
-            ? result.handedness[0][0].categoryName
-            : null;
-
         const detected: string | null =
-          result.landmarks.length > 0 && handLabel
-            ? classifyGesture(result.landmarks[0], handLabel)
+          result.landmarks.length > 0
+            ? classifyGesture(result.landmarks[0])
             : null;
-
-        // TEMP debug — only logs when the result actually changes
-        if (detected !== lastLoggedRef.current) {
-          console.log(
-            "gesture changed:",
-            lastLoggedRef.current,
-            "->",
-            detected,
-            "| hand:",
-            handLabel,
-          );
-          lastLoggedRef.current = detected;
-        }
-
-        // TEMP debug — geometric left/right signal, logged every ~15 frames
-        frameCountRef.current += 1;
-        if (result.landmarks.length > 0 && frameCountRef.current % 15 === 0) {
-          const lm = result.landmarks[0];
-          console.log(
-            "x5 - x17:",
-            (lm[5].x - lm[17].x).toFixed(3),
-            "| hand label:",
-            handLabel,
-          );
-        }
 
         applyTransition(detected, now);
       }
