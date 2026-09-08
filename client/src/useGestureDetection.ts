@@ -95,7 +95,7 @@ function isPalmFacingCamera(landmarks: NormalizedLandmark[]): boolean {
   // TEMP debug
   console.log("normalZ:", normalZ.toFixed(4));
 
-  return normalZ < 0;
+  return normalZ > 0;
 }
 
 /**
