@@ -14,6 +14,7 @@ export interface GestureDetectionState {
   status: GestureStatus;
   ability: string | null;
   castId: number;
+  shieldActive: boolean;
 }
 
 function isIndexPointingUp(landmarks: NormalizedLandmark[]): boolean {
@@ -169,6 +170,7 @@ export function useGestureDetection(
     status: "idle",
     ability: null,
     castId: 0,
+    shieldActive: false,
   });
 
   const landmarkerRef = useRef<HandLandmarker | null>(null);
@@ -180,6 +182,10 @@ export function useGestureDetection(
   const chargeStartTimeRef = useRef<number>(0);
   const lastSeenCorrectTimeRef = useRef<number>(0);
   const castIdRef = useRef<number>(0);
+
+  // Shield's independent on/off track (no charge-up, just a grace period).
+  const shieldActiveRef = useRef<boolean>(false);
+  const lastSeenShieldTimeRef = useRef<number>(0);
 
   // Set up the HandLandmarker once.
   useEffect(() => {
@@ -252,7 +258,8 @@ export function useGestureDetection(
           }
         }
 
-        applyTransition(detected, now);
+        applyShieldTransition(detected, now);
+        applyFireballTransition(detected, now);
       }
 
       rafRef.current = requestAnimationFrame(loop);
@@ -268,47 +275,71 @@ export function useGestureDetection(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function applyTransition(detected: string | null, now: number) {
+  function applyShieldTransition(detected: string | null, now: number) {
+    if (detected === "shield") {
+      lastSeenShieldTimeRef.current = now;
+      if (!shieldActiveRef.current) {
+        shieldActiveRef.current = true;
+        setState((prev) => ({ ...prev, shieldActive: true }));
+      }
+      return;
+    }
+
+    // detected is null or a different gesture — check grace period.
+    if (
+      shieldActiveRef.current &&
+      now - lastSeenShieldTimeRef.current > GRACE_PERIOD_MS
+    ) {
+      shieldActiveRef.current = false;
+      setState((prev) => ({ ...prev, shieldActive: false }));
+    }
+    // else: within grace period, stay active untouched.
+  }
+
+  function applyFireballTransition(detected: string | null, now: number) {
+    // Fireball is the only ability that goes through the charge machine.
+    // Anything else (null, or "shield") is treated as "not fireball".
+    const isFireball = detected === "fireball";
     const chargingAbility = chargingAbilityRef.current;
 
     if (chargingAbility === null) {
       // idle -> charging
-      if (detected !== null) {
-        chargingAbilityRef.current = detected;
+      if (isFireball) {
+        chargingAbilityRef.current = "fireball";
         chargeStartTimeRef.current = now;
         lastSeenCorrectTimeRef.current = now;
-        setState({
+        setState((prev) => ({
+          ...prev,
           status: "charging",
-          ability: detected,
+          ability: "fireball",
           castId: castIdRef.current,
-        });
+        }));
       }
       // idle -> idle: nothing to do
       return;
     }
 
-    // We're charging `chargingAbility`.
-    if (detected === chargingAbility) {
+    // We're charging fireball.
+    if (isFireball) {
       lastSeenCorrectTimeRef.current = now;
 
       if (now - chargeStartTimeRef.current >= CHARGE_DURATION_MS) {
         // charging -> confirmed
         castIdRef.current += 1;
-        const confirmedAbility = chargingAbility;
-
         chargingAbilityRef.current = null;
 
-        setState({
+        setState((prev) => ({
+          ...prev,
           status: "confirmed",
-          ability: confirmedAbility,
+          ability: "fireball",
           castId: castIdRef.current,
-        });
+        }));
 
         // confirmed -> idle on the next tick (momentary pulse)
         setTimeout(() => {
           setState((prev) =>
             prev.castId === castIdRef.current
-              ? { status: "idle", ability: null, castId: prev.castId }
+              ? { ...prev, status: "idle", ability: null }
               : prev,
           );
         }, 0);
@@ -317,11 +348,11 @@ export function useGestureDetection(
       return;
     }
 
-    // detected is null or a different gesture — check grace period.
+    // detected is null or "shield" — check grace period.
     if (now - lastSeenCorrectTimeRef.current > GRACE_PERIOD_MS) {
       // charging -> idle (cancelled)
       chargingAbilityRef.current = null;
-      setState({ status: "idle", ability: null, castId: castIdRef.current });
+      setState((prev) => ({ ...prev, status: "idle", ability: null }));
     }
     // else: within grace period, stay charging untouched.
   }

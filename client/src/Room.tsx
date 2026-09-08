@@ -35,6 +35,8 @@ const Room = () => {
   } | null>(null);
   const prevStatusRef = useRef<"idle" | "charging" | "confirmed">("idle");
   const prevCastIdRef = useRef<number>(0);
+  const prevShieldActiveRef = useRef<boolean>(false);
+  const [opponentShieldActive, setOpponentShieldActive] = useState(false);
   // Ref to store local stream so WebRTC can access it later
   const localStreamRef = useRef<MediaStream | null>(null);
 
@@ -308,6 +310,13 @@ const Room = () => {
         else if (data.type === "charging_cancelled") {
           setOpponentCharge(null);
         }
+
+        // OPPONENT: shield toggled
+        else if (data.type === "shield_activated") {
+          setOpponentShieldActive(true);
+        } else if (data.type === "shield_deactivated") {
+          setOpponentShieldActive(false);
+        }
       } catch (err) {
         console.error("Error processing WebSocket message:", err);
       }
@@ -325,7 +334,7 @@ const Room = () => {
     };
   }, [readyForConnection, isMediaReady, isHost, roomID]);
 
-  // Send gesture state changes to the opponent over the existing WebSocket
+  // Send fireball gesture state changes to the opponent over the existing WebSocket
   useEffect(() => {
     const ws = wsRef.current;
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
@@ -369,6 +378,23 @@ const Room = () => {
     prevStatusRef.current = gestureState.status;
     prevCastIdRef.current = gestureState.castId;
   }, [gestureState, isHost]);
+
+  useEffect(() => {
+    const ws = wsRef.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+    if (gestureState.shieldActive !== prevShieldActiveRef.current) {
+      ws.send(
+        JSON.stringify({
+          type: gestureState.shieldActive
+            ? "shield_activated"
+            : "shield_deactivated",
+          role: isHost ? "host" : "joiner",
+        }),
+      );
+      prevShieldActiveRef.current = gestureState.shieldActive;
+    }
+  }, [gestureState.shieldActive, isHost]);
 
   const handleLeaveRoom = () => {
     const leaveRoom = async () => {
