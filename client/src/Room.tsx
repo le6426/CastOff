@@ -56,6 +56,14 @@ const Room = () => {
   const prevShieldActiveRef = useRef<boolean>(false);
   const [opponentShieldActive, setOpponentShieldActive] = useState(false);
 
+  const [rematchVotes, setRematchVotes] = useState<{
+    host: boolean;
+    joiner: boolean;
+  }>({
+    host: false,
+    joiner: false,
+  });
+
   const hostHPRef = useRef(hostHP);
   const joinerHPRef = useRef(joinerHP);
 
@@ -70,8 +78,21 @@ const Room = () => {
   const checkForWinner = () => {
     if (hostHPRef.current <= 0) {
       setGameWinner(roomJoinerUser);
+      setGameStarted(false);
     } else if (joinerHPRef.current <= 0) {
       setGameWinner(roomCreatorUser);
+      setGameStarted(false);
+    }
+  };
+
+  const handleRematchClick = () => {
+    const myRole = isHost ? "host" : "joiner";
+    setRematchVotes((prev) => ({ ...prev, [myRole]: true }));
+
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(
+        JSON.stringify({ type: "rematch_ready", role: myRole }),
+      );
     }
   };
 
@@ -402,6 +423,11 @@ const Room = () => {
         } else if (data.type === "shield_deactivated") {
           setOpponentShieldActive(false);
         }
+
+        // Sending rematch
+        else if (data.type === "rematch_ready") {
+          setRematchVotes((prev) => ({ ...prev, [data.role]: true }));
+        }
       } catch (err) {
         console.error("Error processing WebSocket message:", err);
       }
@@ -484,6 +510,23 @@ const Room = () => {
       prevShieldActiveRef.current = gestureState.shieldActive;
     }
   }, [gestureState.shieldActive, isHost]);
+
+  useEffect(() => {
+    if (
+      !gameStarted &&
+      gameWinner &&
+      rematchVotes.host &&
+      rematchVotes.joiner
+    ) {
+      setHostHP(100);
+      setJoinerHP(100);
+      hostHPRef.current = 100;
+      joinerHPRef.current = 100;
+      setGameWinner("");
+      setGameStarted(true);
+      setRematchVotes({ host: false, joiner: false });
+    }
+  }, [rematchVotes, gameStarted, gameWinner]);
 
   const handleLeaveRoom = () => {
     const leaveRoom = async () => {
@@ -595,6 +638,27 @@ const Room = () => {
           </div>
 
           <div className="room__stage">
+            {gameWinner && !gameStarted && (
+              <div className="game-over-overlay">
+                <div className="game-over-banner">
+                  {gameWinner === currentUser ? "You Win!" : "You Lose!"}
+                </div>
+                {(() => {
+                  const myRole = isHost ? "host" : "joiner";
+                  const myVoted = rematchVotes[myRole];
+                  const readyCount =
+                    (rematchVotes.host ? 1 : 0) + (rematchVotes.joiner ? 1 : 0);
+
+                  return myVoted ? (
+                    <p className="game-over-waiting">
+                      Waiting for opponent... ({readyCount}/2)
+                    </p>
+                  ) : (
+                    <button onClick={handleRematchClick}>Rematch</button>
+                  );
+                })()}
+              </div>
+            )}
             <div className="video-tile" style={{ position: "relative" }}>
               <video
                 ref={hostVideoRef}
