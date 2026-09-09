@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import { SessionContext } from "./main";
 import "./Room.css";
 import { useGestureDetection } from "./useGestureDetection";
+
 const Room = () => {
   const session = useContext(SessionContext);
   if (!session) throw new Error("Room must be used within SessionContext");
@@ -24,7 +25,14 @@ const Room = () => {
   // Video element refs
   const hostVideoRef = useRef<HTMLVideoElement | null>(null);
   const joinerVideoRef = useRef<HTMLVideoElement | null>(null);
-  const localVideoRef = isHost ? hostVideoRef : joinerVideoRef;
+
+  // Stable ref for "my own local video element" — identity never changes,
+  // only .current gets pointed at whichever real <video> is local, once
+  // getUserMedia resolves and we know for sure. This avoids the stale
+  // closure bug where the gesture-detection loop (set up once at mount)
+  // would otherwise keep reading whichever ref object localVideoRef
+  // happened to equal on the very first render.
+  const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const localCanvasRef = useRef<HTMLCanvasElement>(null);
 
   const gestureState = useGestureDetection(localVideoRef, localCanvasRef);
@@ -32,6 +40,7 @@ const Room = () => {
   useEffect(() => {
     gestureStateRef.current = gestureState;
   }, [gestureState]);
+
   const [opponentCharge, setOpponentCharge] = useState<{
     ability: string;
     startTime: number;
@@ -60,6 +69,7 @@ const Room = () => {
       setGameWinner(roomCreatorUser);
     }
   };
+
   // Ref to store local stream so WebRTC can access it later
   const localStreamRef = useRef<MediaStream | null>(null);
 
@@ -162,11 +172,15 @@ const Room = () => {
         });
         localStreamRef.current = stream;
 
-        // Attach stream to host element if host, or joiner element if joiner
+        // Attach stream to host element if host, or joiner element if joiner.
+        // Also point the stable localVideoRef at whichever element is truly
+        // local — this is what the gesture-detection hook actually reads.
         if (isHost && hostVideoRef.current) {
           hostVideoRef.current.srcObject = stream;
+          localVideoRef.current = hostVideoRef.current;
         } else if (!isHost && joinerVideoRef.current) {
           joinerVideoRef.current.srcObject = stream;
+          localVideoRef.current = joinerVideoRef.current;
         }
         setIsMediaReady(true);
       } catch (err) {
@@ -303,15 +317,8 @@ const Room = () => {
           }
         }
 
-        // JOINER: Checks game results
+        // OPPONENT: successfully cast — apply damage (unless shielded), flash briefly
         else if (data.type === "cast_confirmed") {
-          console.log("cast_confirmed received:", {
-            dataRole: data.role,
-            ability: data.ability,
-            myIsHost: isHost,
-            iAmShielded: gestureStateRef.current.shieldActive,
-          });
-
           setOpponentCharge((prev) =>
             prev ? { ...prev, result: "success" } : prev,
           );
@@ -355,7 +362,10 @@ const Room = () => {
               prev?.result === "success" ? null : prev,
             );
           }, 500);
-        } else if (data.type === "hp_update") {
+        }
+
+        // BOTH: receive an HP update from the other client
+        else if (data.type === "hp_update") {
           if (data.role === "host") {
             setHostHP(data.hp);
           } else {
@@ -363,6 +373,7 @@ const Room = () => {
           }
           checkForWinner();
         }
+
         // OPPONENT: started charging an ability
         else if (data.type === "charging_started") {
           setOpponentCharge({ ability: data.ability, startTime: Date.now() });
@@ -396,7 +407,7 @@ const Room = () => {
     };
   }, [readyForConnection, isMediaReady, isHost, roomID]);
 
-  // Sending fireball
+  // Sending fireball gesture state changes to the opponent
   const lastChargingAbilityRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -407,8 +418,9 @@ const Room = () => {
     const isNowCharging = gestureState.status === "charging";
     const castIdChanged = gestureState.castId !== prevCastIdRef.current;
 
+    // idle/confirmed -> charging: notify opponent charging started
     if (isNowCharging && !wasCharging) {
-      lastChargingAbilityRef.current = gestureState.ability; // remember it here
+      lastChargingAbilityRef.current = gestureState.ability;
       ws.send(
         JSON.stringify({
           type: "charging_started",
@@ -418,16 +430,18 @@ const Room = () => {
       );
     }
 
+    // castId incremented: notify opponent the cast completed
     if (castIdChanged) {
       ws.send(
         JSON.stringify({
           type: "cast_confirmed",
           role: isHost ? "host" : "joiner",
-          ability: lastChargingAbilityRef.current, // use the remembered value, not gestureState.ability
+          ability: lastChargingAbilityRef.current,
         }),
       );
     }
 
+    // charging -> idle, but NOT via a confirm: charge was cancelled
     if (wasCharging && gestureState.status === "idle" && !castIdChanged) {
       ws.send(
         JSON.stringify({
@@ -441,6 +455,7 @@ const Room = () => {
     prevCastIdRef.current = gestureState.castId;
   }, [gestureState, isHost]);
 
+  // Sending shield state changes to the opponent
   useEffect(() => {
     const ws = wsRef.current;
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
