@@ -375,6 +375,7 @@ const Room = () => {
               if (isHost) {
                 setHostHP((prev) => {
                   const newHP = Math.max(0, prev - 20);
+                  hostHPRef.current = newHP; // update immediately, don't wait for the effect
                   ws.send(
                     JSON.stringify({
                       type: "hp_update",
@@ -388,6 +389,7 @@ const Room = () => {
               } else {
                 setJoinerHP((prev) => {
                   const newHP = Math.max(0, prev - 20);
+                  joinerHPRef.current = newHP; // update immediately, don't wait for the effect
                   ws.send(
                     JSON.stringify({
                       type: "hp_update",
@@ -412,8 +414,10 @@ const Room = () => {
         // BOTH: receive an HP update from the other client
         else if (data.type === "hp_update") {
           if (data.role === "host") {
+            hostHPRef.current = data.hp;
             setHostHP(data.hp);
           } else {
+            joinerHPRef.current = data.hp;
             setJoinerHP(data.hp);
           }
           checkForWinner();
@@ -638,7 +642,14 @@ const Room = () => {
             </div>
 
             <div className="room__actions">
-              {isHost && <button onClick={handleStartGame}>Start Game</button>}
+              {isHost && !gameStarted && (
+                <button onClick={handleStartGame}>Start Game</button>
+              )}
+              {isHost && gameStarted && (
+                <button className="btn-secondary" disabled>
+                  Game in Progress
+                </button>
+              )}
               <button
                 className="btn-secondary"
                 onClick={handleLeaveRoom}
