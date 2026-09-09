@@ -11,8 +11,6 @@ const Room = () => {
   const { loggedIn, currentUser, isAuthLoading } = session;
   const navigate = useNavigate();
 
-  const [roomCreatorUser, setRoomCreatorUser] = useState(``);
-  const [roomJoinerUser, setRoomJoinerUser] = useState(``);
   const [isHost, setIsHost] = useState(false);
   const [inviteLink, setInviteLink] = useState(``);
   const [joinError, setJoinError] = useState(``);
@@ -21,6 +19,20 @@ const Room = () => {
   const [hostHP, setHostHP] = useState(100);
   const [joinerHP, setJoinerHP] = useState(100);
   const [gameWinner, setGameWinner] = useState(``);
+
+  const [roomCreatorUser, setRoomCreatorUser] = useState(``);
+  const [roomJoinerUser, setRoomJoinerUser] = useState(``);
+
+  const roomCreatorUserRef = useRef(roomCreatorUser);
+  const roomJoinerUserRef = useRef(roomJoinerUser);
+
+  useEffect(() => {
+    roomCreatorUserRef.current = roomCreatorUser;
+  }, [roomCreatorUser]);
+
+  useEffect(() => {
+    roomJoinerUserRef.current = roomJoinerUser;
+  }, [roomJoinerUser]);
 
   // Video element refs
   const hostVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -77,10 +89,10 @@ const Room = () => {
 
   const checkForWinner = () => {
     if (hostHPRef.current <= 0) {
-      setGameWinner(roomJoinerUser);
+      setGameWinner(roomJoinerUserRef.current);
       setGameStarted(false);
     } else if (joinerHPRef.current <= 0) {
-      setGameWinner(roomCreatorUser);
+      setGameWinner(roomCreatorUserRef.current);
       setGameStarted(false);
     }
   };
