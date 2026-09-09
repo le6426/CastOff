@@ -165,6 +165,7 @@ function drawHandSkeleton(
 export function useGestureDetection(
   videoRef: React.RefObject<HTMLVideoElement | null>,
   canvasRef?: React.RefObject<HTMLCanvasElement | null>,
+  gameStarted: boolean = true,
 ) {
   const [state, setState] = useState<GestureDetectionState>({
     status: "idle",
@@ -175,6 +176,15 @@ export function useGestureDetection(
 
   const landmarkerRef = useRef<HandLandmarker | null>(null);
   const rafRef = useRef<number | null>(null);
+
+  // Mirrors the gameStarted prop into a ref so the detection loop (set up
+  // once, empty dependency array) always reads the LIVE value rather than
+  // whatever gameStarted was at the moment the loop was created — the same
+  // kind of staleness bug we hit with the video ref earlier.
+  const gameStartedRef = useRef(gameStarted);
+  useEffect(() => {
+    gameStartedRef.current = gameStarted;
+  }, [gameStarted]);
 
   // Internal timing state — doesn't need to be React state,
   // since nothing outside the loop reads it directly.
@@ -258,8 +268,12 @@ export function useGestureDetection(
           }
         }
 
-        applyShieldTransition(detected, now);
-        applyFireballTransition(detected, now);
+        // Detection and drawing always run — only the actual charge/cast/
+        // shield gameplay logic is gated behind the game having started.
+        if (gameStartedRef.current) {
+          applyShieldTransition(detected, now);
+          applyFireballTransition(detected, now);
+        }
       }
 
       rafRef.current = requestAnimationFrame(loop);

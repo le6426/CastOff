@@ -35,7 +35,12 @@ const Room = () => {
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const localCanvasRef = useRef<HTMLCanvasElement>(null);
 
-  const gestureState = useGestureDetection(localVideoRef, localCanvasRef);
+  const [gameStarted, setGameStarted] = useState(false);
+  const gestureState = useGestureDetection(
+    localVideoRef,
+    localCanvasRef,
+    gameStarted,
+  );
   const gestureStateRef = useRef(gestureState);
   useEffect(() => {
     gestureStateRef.current = gestureState;
@@ -315,6 +320,13 @@ const Room = () => {
           } else {
             await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
           }
+        } else if (data.type === "game_started") {
+          setHostHP(100);
+          setJoinerHP(100);
+          hostHPRef.current = 100;
+          joinerHPRef.current = 100;
+          setGameWinner("");
+          setGameStarted(true);
         }
 
         // OPPONENT: successfully cast — apply damage (unless shielded), flash briefly
@@ -518,7 +530,16 @@ const Room = () => {
   }, [roomID]);
 
   const handleStartGame = () => {
-    console.log("game started");
+    setHostHP(100);
+    setJoinerHP(100);
+    hostHPRef.current = 100;
+    joinerHPRef.current = 100;
+    setGameWinner("");
+    setGameStarted(true);
+
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: "game_started" }));
+    }
   };
 
   return (
