@@ -539,6 +539,18 @@ const Room = () => {
       );
     }
 
+    if (isNowCharging && !wasCharging) {
+      lastChargingAbilityRef.current = gestureState.ability;
+      setMyChargeStartTime(Date.now()); // NEW — gives the local icon a fresh animation key
+      ws.send(
+        JSON.stringify({
+          type: "charging_started",
+          role: isHost ? "host" : "joiner",
+          ability: gestureState.ability,
+        }),
+      );
+    }
+
     prevStatusRef.current = gestureState.status;
     prevCastIdRef.current = gestureState.castId;
   }, [gestureState, isHost]);
