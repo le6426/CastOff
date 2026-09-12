@@ -71,6 +71,15 @@ const Room = () => {
     host: false,
     joiner: false,
   });
+  const [myFireballPos, setMyFireballPos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const [myShieldPos, setMyShieldPos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const [myChargeStartTime, setMyChargeStartTime] = useState<number>(0);
 
   const hostHPRef = useRef(hostHP);
   const joinerHPRef = useRef(joinerHP);
@@ -552,19 +561,18 @@ const Room = () => {
     }
   }, [gestureState.shieldActive, isHost]);
 
-  // Stream live position updates to the opponent while actively
-  // charging fireball or holding shield.
+  // Updated position-streaming effect — now also updates local state:
   useEffect(() => {
     const intervalId = setInterval(() => {
       const ws = wsRef.current;
-      if (!ws || ws.readyState !== WebSocket.OPEN) return;
 
       if (
         gestureState.status === "charging" &&
         gestureState.ability === "fireball"
       ) {
         const pos = gestureState.indexTipRef.current;
-        if (pos) {
+        setMyFireballPos(pos);
+        if (ws && ws.readyState === WebSocket.OPEN && pos) {
           ws.send(
             JSON.stringify({
               type: "fireball_position",
@@ -574,11 +582,14 @@ const Room = () => {
             }),
           );
         }
+      } else {
+        setMyFireballPos(null);
       }
 
       if (gestureState.shieldActive) {
         const pos = gestureState.palmCenterRef.current;
-        if (pos) {
+        setMyShieldPos(pos);
+        if (ws && ws.readyState === WebSocket.OPEN && pos) {
           ws.send(
             JSON.stringify({
               type: "shield_position",
@@ -588,8 +599,10 @@ const Room = () => {
             }),
           );
         }
+      } else {
+        setMyShieldPos(null);
       }
-    }, 80); // ~12 times/sec
+    }, 80);
 
     return () => clearInterval(intervalId);
   }, [
@@ -777,6 +790,28 @@ const Room = () => {
                   }}
                 />
               )}
+              {isHost &&
+                gestureState.status === "charging" &&
+                gestureState.ability === "fireball" &&
+                myFireballPos && (
+                  <div
+                    key={myChargeStartTime}
+                    className="fireball-icon"
+                    style={{
+                      left: `${(1 - myFireballPos.x) * 100}%`,
+                      top: `${myFireballPos.y * 100}%`,
+                    }}
+                  />
+                )}
+              {isHost && gestureState.shieldActive && myShieldPos && (
+                <div
+                  className="shield-icon"
+                  style={{
+                    left: `${(1 - myShieldPos.x) * 100}%`,
+                    top: `${myShieldPos.y * 100}%`,
+                  }}
+                />
+              )}
               {/* Opponent ability icons render on this tile only when I am the joiner
                   (i.e. this host tile shows the opponent, from a joiner's perspective) */}
               {!isHost &&
@@ -786,7 +821,7 @@ const Room = () => {
                     key={opponentCharge.startTime}
                     className="fireball-icon"
                     style={{
-                      left: `${opponentFireballPos.x * 100}%`,
+                      left: `${(1 - opponentFireballPos.x) * 100}%`,
                       top: `${opponentFireballPos.y * 100}%`,
                     }}
                   />
@@ -795,7 +830,7 @@ const Room = () => {
                 <div
                   className="shield-icon"
                   style={{
-                    left: `${opponentShieldPos.x * 100}%`,
+                    left: `${(1 - opponentShieldPos.x) * 100}%`,
                     top: `${opponentShieldPos.y * 100}%`,
                   }}
                 />
@@ -840,7 +875,7 @@ const Room = () => {
                     key={opponentCharge.startTime}
                     className="fireball-icon"
                     style={{
-                      left: `${opponentFireballPos.x * 100}%`,
+                      left: `${(1 - opponentFireballPos.x) * 100}%`,
                       top: `${opponentFireballPos.y * 100}%`,
                     }}
                   />
@@ -849,7 +884,7 @@ const Room = () => {
                 <div
                   className="shield-icon"
                   style={{
-                    left: `${opponentShieldPos.x * 100}%`,
+                    left: `${(1 - opponentShieldPos.x) * 100}%`,
                     top: `${opponentShieldPos.y * 100}%`,
                   }}
                 />
