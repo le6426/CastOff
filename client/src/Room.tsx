@@ -11,6 +11,8 @@ const Room = () => {
   const { loggedIn, currentUser, isAuthLoading } = session;
   const navigate = useNavigate();
 
+  const [roomCreatorUser, setRoomCreatorUser] = useState(``);
+  const [roomJoinerUser, setRoomJoinerUser] = useState(``);
   const [isHost, setIsHost] = useState(false);
   const [inviteLink, setInviteLink] = useState(``);
   const [joinError, setJoinError] = useState(``);
@@ -20,30 +22,13 @@ const Room = () => {
   const [joinerHP, setJoinerHP] = useState(100);
   const [gameWinner, setGameWinner] = useState(``);
 
-  const [roomCreatorUser, setRoomCreatorUser] = useState(``);
-  const [roomJoinerUser, setRoomJoinerUser] = useState(``);
-
-  const roomCreatorUserRef = useRef(roomCreatorUser);
-  const roomJoinerUserRef = useRef(roomJoinerUser);
-
-  useEffect(() => {
-    roomCreatorUserRef.current = roomCreatorUser;
-  }, [roomCreatorUser]);
-
-  useEffect(() => {
-    roomJoinerUserRef.current = roomJoinerUser;
-  }, [roomJoinerUser]);
-
   // Video element refs
   const hostVideoRef = useRef<HTMLVideoElement | null>(null);
   const joinerVideoRef = useRef<HTMLVideoElement | null>(null);
 
   // Stable ref for "my own local video element" — identity never changes,
   // only .current gets pointed at whichever real <video> is local, once
-  // getUserMedia resolves and we know for sure. This avoids the stale
-  // closure bug where the gesture-detection loop (set up once at mount)
-  // would otherwise keep reading whichever ref object localVideoRef
-  // happened to equal on the very first render.
+  // getUserMedia resolves and we know for sure.
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const localCanvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -68,6 +53,17 @@ const Room = () => {
   const prevShieldActiveRef = useRef<boolean>(false);
   const [opponentShieldActive, setOpponentShieldActive] = useState(false);
 
+  // Live position of the opponent's fireball fingertip / shield palm-center,
+  // streamed over the WebSocket while the corresponding ability is active.
+  const [opponentFireballPos, setOpponentFireballPos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const [opponentShieldPos, setOpponentShieldPos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+
   const [rematchVotes, setRematchVotes] = useState<{
     host: boolean;
     joiner: boolean;
@@ -86,6 +82,20 @@ const Room = () => {
   useEffect(() => {
     joinerHPRef.current = joinerHP;
   }, [joinerHP]);
+
+  // Mirrored into refs so checkForWinner (called from a long-lived
+  // WebSocket closure) always reads the live username, not a stale
+  // snapshot from whenever that closure was first created.
+  const roomCreatorUserRef = useRef(roomCreatorUser);
+  const roomJoinerUserRef = useRef(roomJoinerUser);
+
+  useEffect(() => {
+    roomCreatorUserRef.current = roomCreatorUser;
+  }, [roomCreatorUser]);
+
+  useEffect(() => {
+    roomJoinerUserRef.current = roomJoinerUser;
+  }, [roomJoinerUser]);
 
   const checkForWinner = () => {
     if (hostHPRef.current <= 0) {
@@ -268,8 +278,6 @@ const Room = () => {
     }
 
     // 3. Set up remote track handler
-    // Event listener that triggers when other browser
-    // sends its video or audio streams
     pc.ontrack = (event) => {
       console.log("Received remote track:", event.streams[0]);
       if (isHost && joinerVideoRef.current) {
@@ -353,7 +361,10 @@ const Room = () => {
           } else {
             await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
           }
-        } else if (data.type === "game_started") {
+        }
+
+        // BOTH: game (re)started — reset HP and clear winner
+        else if (data.type === "game_started") {
           setHostHP(100);
           setJoinerHP(100);
           hostHPRef.current = 100;
@@ -375,7 +386,7 @@ const Room = () => {
               if (isHost) {
                 setHostHP((prev) => {
                   const newHP = Math.max(0, prev - 20);
-                  hostHPRef.current = newHP; // update immediately, don't wait for the effect
+                  hostHPRef.current = newHP;
                   ws.send(
                     JSON.stringify({
                       type: "hp_update",
@@ -389,7 +400,7 @@ const Room = () => {
               } else {
                 setJoinerHP((prev) => {
                   const newHP = Math.max(0, prev - 20);
-                  joinerHPRef.current = newHP; // update immediately, don't wait for the effect
+                  joinerHPRef.current = newHP;
                   ws.send(
                     JSON.stringify({
                       type: "hp_update",
@@ -408,6 +419,7 @@ const Room = () => {
             setOpponentCharge((prev) =>
               prev?.result === "success" ? null : prev,
             );
+            setOpponentFireballPos(null);
           }, 500);
         }
 
@@ -426,11 +438,13 @@ const Room = () => {
         // OPPONENT: started charging an ability
         else if (data.type === "charging_started") {
           setOpponentCharge({ ability: data.ability, startTime: Date.now() });
+          setOpponentFireballPos(null);
         }
 
         // OPPONENT: charge was cancelled/interrupted
         else if (data.type === "charging_cancelled") {
           setOpponentCharge(null);
+          setOpponentFireballPos(null);
         }
 
         // OPPONENT: shield toggled
@@ -438,9 +452,20 @@ const Room = () => {
           setOpponentShieldActive(true);
         } else if (data.type === "shield_deactivated") {
           setOpponentShieldActive(false);
+          setOpponentShieldPos(null);
         }
 
-        // Sending rematch
+        // OPPONENT: live fireball fingertip position while charging
+        else if (data.type === "fireball_position") {
+          setOpponentFireballPos({ x: data.x, y: data.y });
+        }
+
+        // OPPONENT: live shield palm-center position while active
+        else if (data.type === "shield_position") {
+          setOpponentShieldPos({ x: data.x, y: data.y });
+        }
+
+        // Rematch consensus
         else if (data.type === "rematch_ready") {
           setRematchVotes((prev) => ({ ...prev, [data.role]: true }));
         }
@@ -527,6 +552,54 @@ const Room = () => {
     }
   }, [gestureState.shieldActive, isHost]);
 
+  // Stream live position updates to the opponent while actively
+  // charging fireball or holding shield.
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      const ws = wsRef.current;
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+      if (
+        gestureState.status === "charging" &&
+        gestureState.ability === "fireball"
+      ) {
+        const pos = gestureState.indexTipRef.current;
+        if (pos) {
+          ws.send(
+            JSON.stringify({
+              type: "fireball_position",
+              role: isHost ? "host" : "joiner",
+              x: pos.x,
+              y: pos.y,
+            }),
+          );
+        }
+      }
+
+      if (gestureState.shieldActive) {
+        const pos = gestureState.palmCenterRef.current;
+        if (pos) {
+          ws.send(
+            JSON.stringify({
+              type: "shield_position",
+              role: isHost ? "host" : "joiner",
+              x: pos.x,
+              y: pos.y,
+            }),
+          );
+        }
+      }
+    }, 80); // ~12 times/sec
+
+    return () => clearInterval(intervalId);
+  }, [
+    gestureState.status,
+    gestureState.ability,
+    gestureState.shieldActive,
+    isHost,
+  ]);
+
+  // Rematch consensus: once both players have voted, restart symmetrically
   useEffect(() => {
     if (
       !gameStarted &&
@@ -682,6 +755,7 @@ const Room = () => {
                 })()}
               </div>
             )}
+
             <div className="video-tile" style={{ position: "relative" }}>
               <video
                 ref={hostVideoRef}
@@ -700,6 +774,29 @@ const Room = () => {
                     width: "100%",
                     height: "100%",
                     transform: "scaleX(-1)",
+                  }}
+                />
+              )}
+              {/* Opponent ability icons render on this tile only when I am the joiner
+                  (i.e. this host tile shows the opponent, from a joiner's perspective) */}
+              {!isHost &&
+                opponentCharge?.ability === "fireball" &&
+                opponentFireballPos && (
+                  <div
+                    key={opponentCharge.startTime}
+                    className="fireball-icon"
+                    style={{
+                      left: `${opponentFireballPos.x * 100}%`,
+                      top: `${opponentFireballPos.y * 100}%`,
+                    }}
+                  />
+                )}
+              {!isHost && opponentShieldActive && opponentShieldPos && (
+                <div
+                  className="shield-icon"
+                  style={{
+                    left: `${opponentShieldPos.x * 100}%`,
+                    top: `${opponentShieldPos.y * 100}%`,
                   }}
                 />
               )}
@@ -731,6 +828,29 @@ const Room = () => {
                     width: "100%",
                     height: "100%",
                     transform: "scaleX(-1)",
+                  }}
+                />
+              )}
+              {/* Opponent ability icons render on this tile only when I am the host
+                  (i.e. this joiner tile shows the opponent, from a host's perspective) */}
+              {isHost &&
+                opponentCharge?.ability === "fireball" &&
+                opponentFireballPos && (
+                  <div
+                    key={opponentCharge.startTime}
+                    className="fireball-icon"
+                    style={{
+                      left: `${opponentFireballPos.x * 100}%`,
+                      top: `${opponentFireballPos.y * 100}%`,
+                    }}
+                  />
+                )}
+              {isHost && opponentShieldActive && opponentShieldPos && (
+                <div
+                  className="shield-icon"
+                  style={{
+                    left: `${opponentShieldPos.x * 100}%`,
+                    top: `${opponentShieldPos.y * 100}%`,
                   }}
                 />
               )}

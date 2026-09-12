@@ -204,3 +204,41 @@
   color: var(--color-text-muted);
   font-size: 1rem;
 }
+
+.fireball-icon {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: radial-gradient(
+    circle,
+    #ffcc33 0%,
+    #ff6600 60%,
+    transparent 100%
+  );
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0.2);
+  animation: fireball-grow 3s linear forwards;
+  pointer-events: none;
+  z-index: 20;
+}
+
+@keyframes fireball-grow {
+  from {
+    transform: translate(-50%, -50%) scale(0.2);
+  }
+  to {
+    transform: translate(-50%, -50%) scale(4);
+  }
+}
+
+.shield-icon {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background: rgba(80, 160, 255, 0.85);
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 20;
+}

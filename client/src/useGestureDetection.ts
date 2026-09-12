@@ -174,6 +174,12 @@ export function useGestureDetection(
     shieldActive: false,
   });
 
+  // Position tracking — plain refs, not state, since they update every
+  // single frame and would cause excessive re-renders as React state.
+  // Room.tsx polls these independently at a controlled rate.
+  const indexTipRef = useRef<{ x: number; y: number } | null>(null);
+  const palmCenterRef = useRef<{ x: number; y: number } | null>(null);
+
   const landmarkerRef = useRef<HandLandmarker | null>(null);
   const rafRef = useRef<number | null>(null);
 
@@ -242,6 +248,17 @@ export function useGestureDetection(
           result.landmarks.length > 0
             ? classifyGesture(result.landmarks[0])
             : null;
+
+        // Update position refs every frame, regardless of gameStarted —
+        // these are read on-demand by Room.tsx, not gated here.
+        if (result.landmarks.length > 0) {
+          const lm = result.landmarks[0];
+          indexTipRef.current = { x: lm[8].x, y: lm[8].y };
+          palmCenterRef.current = { x: lm[9].x, y: lm[9].y };
+        } else {
+          indexTipRef.current = null;
+          palmCenterRef.current = null;
+        }
 
         const canvas = canvasRef?.current;
         if (canvas) {
@@ -371,5 +388,5 @@ export function useGestureDetection(
     // else: within grace period, stay charging untouched.
   }
 
-  return state;
+  return { ...state, indexTipRef, palmCenterRef };
 }
