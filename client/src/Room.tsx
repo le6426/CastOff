@@ -64,13 +64,8 @@ const Room = () => {
     y: number;
   } | null>(null);
 
-  const [rematchVotes, setRematchVotes] = useState<{
-    host: boolean;
-    joiner: boolean;
-  }>({
-    host: false,
-    joiner: false,
-  });
+  // My own live position — same data, but for rendering the icon on my
+  // own tile locally, with no network round-trip needed.
   const [myFireballPos, setMyFireballPos] = useState<{
     x: number;
     y: number;
@@ -80,6 +75,14 @@ const Room = () => {
     y: number;
   } | null>(null);
   const [myChargeStartTime, setMyChargeStartTime] = useState<number>(0);
+
+  const [rematchVotes, setRematchVotes] = useState<{
+    host: boolean;
+    joiner: boolean;
+  }>({
+    host: false,
+    joiner: false,
+  });
 
   const hostHPRef = useRef(hostHP);
   const joinerHPRef = useRef(joinerHP);
@@ -509,6 +512,7 @@ const Room = () => {
     // idle/confirmed -> charging: notify opponent charging started
     if (isNowCharging && !wasCharging) {
       lastChargingAbilityRef.current = gestureState.ability;
+      setMyChargeStartTime(Date.now());
       ws.send(
         JSON.stringify({
           type: "charging_started",
@@ -539,18 +543,6 @@ const Room = () => {
       );
     }
 
-    if (isNowCharging && !wasCharging) {
-      lastChargingAbilityRef.current = gestureState.ability;
-      setMyChargeStartTime(Date.now()); // NEW — gives the local icon a fresh animation key
-      ws.send(
-        JSON.stringify({
-          type: "charging_started",
-          role: isHost ? "host" : "joiner",
-          ability: gestureState.ability,
-        }),
-      );
-    }
-
     prevStatusRef.current = gestureState.status;
     prevCastIdRef.current = gestureState.castId;
   }, [gestureState, isHost]);
@@ -573,7 +565,10 @@ const Room = () => {
     }
   }, [gestureState.shieldActive, isHost]);
 
-  // Updated position-streaming effect — now also updates local state:
+  // Stream live position updates to the opponent while actively
+  // charging fireball or holding shield — and mirror the same data into
+  // local state so my own tile can show my own icon too, with no
+  // network round-trip needed for that part.
   useEffect(() => {
     const intervalId = setInterval(() => {
       const ws = wsRef.current;
@@ -614,7 +609,7 @@ const Room = () => {
       } else {
         setMyShieldPos(null);
       }
-    }, 80);
+    }, 80); // ~12 times/sec
 
     return () => clearInterval(intervalId);
   }, [
@@ -802,6 +797,32 @@ const Room = () => {
                   }}
                 />
               )}
+              {/* Opponent ability icons render on this tile only when I am the joiner
+                  (i.e. this host tile shows the opponent, from a joiner's perspective).
+                  x is flipped (1 - x) to match the mirrored .video-tile__video display. */}
+              {!isHost &&
+                opponentCharge?.ability === "fireball" &&
+                opponentFireballPos && (
+                  <div
+                    key={opponentCharge.startTime}
+                    className="fireball-icon"
+                    style={{
+                      left: `${(1 - opponentFireballPos.x) * 100}%`,
+                      top: `${opponentFireballPos.y * 100}%`,
+                    }}
+                  />
+                )}
+              {!isHost && opponentShieldActive && opponentShieldPos && (
+                <div
+                  className="shield-icon"
+                  style={{
+                    left: `${(1 - opponentShieldPos.x) * 100}%`,
+                    top: `${opponentShieldPos.y * 100}%`,
+                  }}
+                />
+              )}
+              {/* My own ability icons render here only when I am the host
+                  (this is my own tile in that case). */}
               {isHost &&
                 gestureState.status === "charging" &&
                 gestureState.ability === "fireball" &&
@@ -821,29 +842,6 @@ const Room = () => {
                   style={{
                     left: `${(1 - myShieldPos.x) * 100}%`,
                     top: `${myShieldPos.y * 100}%`,
-                  }}
-                />
-              )}
-              {/* Opponent ability icons render on this tile only when I am the joiner
-                  (i.e. this host tile shows the opponent, from a joiner's perspective) */}
-              {!isHost &&
-                opponentCharge?.ability === "fireball" &&
-                opponentFireballPos && (
-                  <div
-                    key={opponentCharge.startTime}
-                    className="fireball-icon"
-                    style={{
-                      left: `${(1 - opponentFireballPos.x) * 100}%`,
-                      top: `${opponentFireballPos.y * 100}%`,
-                    }}
-                  />
-                )}
-              {!isHost && opponentShieldActive && opponentShieldPos && (
-                <div
-                  className="shield-icon"
-                  style={{
-                    left: `${(1 - opponentShieldPos.x) * 100}%`,
-                    top: `${opponentShieldPos.y * 100}%`,
                   }}
                 />
               )}
@@ -879,7 +877,7 @@ const Room = () => {
                 />
               )}
               {/* Opponent ability icons render on this tile only when I am the host
-                  (i.e. this joiner tile shows the opponent, from a host's perspective) */}
+                  (i.e. this joiner tile shows the opponent, from a host's perspective). */}
               {isHost &&
                 opponentCharge?.ability === "fireball" &&
                 opponentFireballPos && (
@@ -898,6 +896,30 @@ const Room = () => {
                   style={{
                     left: `${(1 - opponentShieldPos.x) * 100}%`,
                     top: `${opponentShieldPos.y * 100}%`,
+                  }}
+                />
+              )}
+              {/* My own ability icons render here only when I am the joiner
+                  (this is my own tile in that case). */}
+              {!isHost &&
+                gestureState.status === "charging" &&
+                gestureState.ability === "fireball" &&
+                myFireballPos && (
+                  <div
+                    key={myChargeStartTime}
+                    className="fireball-icon"
+                    style={{
+                      left: `${(1 - myFireballPos.x) * 100}%`,
+                      top: `${myFireballPos.y * 100}%`,
+                    }}
+                  />
+                )}
+              {!isHost && gestureState.shieldActive && myShieldPos && (
+                <div
+                  className="shield-icon"
+                  style={{
+                    left: `${(1 - myShieldPos.x) * 100}%`,
+                    top: `${myShieldPos.y * 100}%`,
                   }}
                 />
               )}
