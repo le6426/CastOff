@@ -33,6 +33,7 @@ const Room = () => {
   const localCanvasRef = useRef<HTMLCanvasElement>(null);
 
   const [gameStarted, setGameStarted] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const gestureState = useGestureDetection(
     localVideoRef,
     localCanvasRef,
@@ -117,6 +118,27 @@ const Room = () => {
       setGameWinner(roomCreatorUserRef.current);
       setGameStarted(false);
     }
+  };
+
+  // Runs a local 3-2-1 countdown, then flips gameStarted true. Both host
+  // and joiner call this independently (host on click, joiner on
+  // receiving game_started) — no per-tick network sync needed, since
+  // a few hundred ms of drift between two local timers is imperceptible
+  // for this purpose.
+  const startCountdown = () => {
+    let count = 3;
+    setCountdown(count);
+
+    const intervalId = setInterval(() => {
+      count -= 1;
+      if (count <= 0) {
+        clearInterval(intervalId);
+        setCountdown(null);
+        setGameStarted(true);
+      } else {
+        setCountdown(count);
+      }
+    }, 1000);
   };
 
   const handleRematchClick = () => {
@@ -375,14 +397,14 @@ const Room = () => {
           }
         }
 
-        // BOTH: game (re)started — reset HP and clear winner
+        // BOTH: game (re)started — reset HP, clear winner, run countdown
         else if (data.type === "game_started") {
           setHostHP(100);
           setJoinerHP(100);
           hostHPRef.current = 100;
           joinerHPRef.current = 100;
           setGameWinner("");
-          setGameStarted(true);
+          startCountdown();
         }
 
         // OPPONENT: successfully cast — apply damage (unless shielded), flash briefly
@@ -632,7 +654,7 @@ const Room = () => {
       hostHPRef.current = 100;
       joinerHPRef.current = 100;
       setGameWinner("");
-      setGameStarted(true);
+      startCountdown();
       setRematchVotes({ host: false, joiner: false });
     }
   }, [rematchVotes, gameStarted, gameWinner]);
@@ -687,7 +709,7 @@ const Room = () => {
     hostHPRef.current = 100;
     joinerHPRef.current = 100;
     setGameWinner("");
-    setGameStarted(true);
+    startCountdown();
 
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ type: "game_started" }));
@@ -735,10 +757,17 @@ const Room = () => {
             </div>
 
             <div className="room__actions">
-              {isHost && !gameStarted && (
-                <button onClick={handleStartGame}>Start Game</button>
-              )}
-              {isHost && gameStarted && (
+              {isHost &&
+                !gameStarted &&
+                countdown === null &&
+                (roomJoinerUser ? (
+                  <button onClick={handleStartGame}>Start Game</button>
+                ) : (
+                  <button className="btn-secondary" disabled>
+                    Waiting for Opponent
+                  </button>
+                ))}
+              {isHost && (gameStarted || countdown !== null) && (
                 <button className="btn-secondary" disabled>
                   Game in Progress
                 </button>
@@ -754,6 +783,11 @@ const Room = () => {
           </div>
 
           <div className="room__stage">
+            {countdown !== null && (
+              <div className="countdown-overlay">
+                <div className="countdown-number">{countdown}</div>
+              </div>
+            )}
             {gameWinner && !gameStarted && (
               <div className="game-over-overlay">
                 <div className="game-over-banner">
