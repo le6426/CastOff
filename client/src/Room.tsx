@@ -766,9 +766,12 @@ const Room = () => {
                     (rematchVotes.host ? 1 : 0) + (rematchVotes.joiner ? 1 : 0);
 
                   return myVoted ? (
-                    <p className="game-over-waiting">
-                      Waiting for opponent... ({readyCount}/2)
-                    </p>
+                    <>
+                      <p className="game-over-waiting">
+                        Waiting for opponent... ({readyCount}/2)
+                      </p>
+                      <button onClick={handleLeaveRoom}>Leave Room</button>
+                    </>
                   ) : (
                     <>
                       <button onClick={handleRematchClick}>Rematch</button>
