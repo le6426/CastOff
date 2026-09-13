@@ -770,12 +770,16 @@ const Room = () => {
                       <p className="game-over-waiting">
                         Waiting for opponent... ({readyCount}/2)
                       </p>
-                      <button onClick={handleLeaveRoom}>Leave Room</button>
+                      <button onClick={handleLeaveRoom} disabled={isLeaving}>
+                        {isLeaving ? "Leaving..." : "Leave Room"}
+                      </button>{" "}
                     </>
                   ) : (
                     <>
                       <button onClick={handleRematchClick}>Rematch</button>
-                      <button onClick={handleLeaveRoom}>Leave Room</button>
+                      <button onClick={handleLeaveRoom} disabled={isLeaving}>
+                        {isLeaving ? "Leaving..." : "Leave Room"}
+                      </button>{" "}
                     </>
                   );
                 })()}
