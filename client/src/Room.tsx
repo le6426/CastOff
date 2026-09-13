@@ -34,6 +34,25 @@ const Room = () => {
 
   const [gameStarted, setGameStarted] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
+
+  // Mirrored into refs for the same reason as roomCreatorUserRef/hostHPRef
+  // elsewhere in this file: ws.onmessage is a long-lived closure that
+  // would otherwise see stale snapshots of these values.
+  const gameStartedRef = useRef(gameStarted);
+  const countdownRef = useRef(countdown);
+  const gameWinnerRef = useRef(gameWinner);
+
+  useEffect(() => {
+    gameStartedRef.current = gameStarted;
+  }, [gameStarted]);
+
+  useEffect(() => {
+    countdownRef.current = countdown;
+  }, [countdown]);
+
+  useEffect(() => {
+    gameWinnerRef.current = gameWinner;
+  }, [gameWinner]);
   const gestureState = useGestureDetection(
     localVideoRef,
     localCanvasRef,
@@ -503,6 +522,24 @@ const Room = () => {
         else if (data.type === "rematch_ready") {
           setRematchVotes((prev) => ({ ...prev, [data.role]: true }));
         }
+
+        // OPPONENT: left the room
+        else if (data.type === "peer_left") {
+          if (gameStartedRef.current || countdownRef.current !== null) {
+            // Mid-match (or mid-countdown): the remaining player wins by default
+            setGameStarted(false);
+            setCountdown(null);
+            setGameWinner(currentUser ?? "");
+          } else if (!gameWinnerRef.current) {
+            // Still in the waiting room, pre-match: clear their username so
+            // the Start Game button correctly disables again.
+            if (data.role === "host") {
+              setRoomCreatorUser("");
+            } else {
+              setRoomJoinerUser("");
+            }
+          }
+        }
       } catch (err) {
         console.error("Error processing WebSocket message:", err);
       }
@@ -663,6 +700,16 @@ const Room = () => {
     const leaveRoom = async () => {
       if (isLeaving) return; // Prevent multiple leave requests
       setIsLeaving(true);
+
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(
+          JSON.stringify({
+            type: "peer_left",
+            role: isHost ? "host" : "joiner",
+          }),
+        );
+      }
+
       try {
         const leave_room_response = await fetch(
           `${apiBaseUrl}/leave_room/${roomID}`,
@@ -689,6 +736,15 @@ const Room = () => {
     const handlePageHide = () => {
       if (!roomID) return;
 
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(
+          JSON.stringify({
+            type: "peer_left",
+            role: isHost ? "host" : "joiner",
+          }),
+        );
+      }
+
       fetch(`${apiBaseUrl}/leave_room/${roomID}`, {
         method: "POST",
         credentials: "include",
@@ -701,7 +757,7 @@ const Room = () => {
     return () => {
       window.removeEventListener("pagehide", handlePageHide);
     };
-  }, [roomID]);
+  }, [roomID, isHost]);
 
   const handleStartGame = () => {
     setHostHP(100);
