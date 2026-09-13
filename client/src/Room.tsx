@@ -770,7 +770,10 @@ const Room = () => {
                       Waiting for opponent... ({readyCount}/2)
                     </p>
                   ) : (
-                    <button onClick={handleRematchClick}>Rematch</button>
+                    <>
+                      <button onClick={handleRematchClick}>Rematch</button>
+                      <button onClick={handleLeaveRoom}>Leave Room</button>
+                    </>
                   );
                 })()}
               </div>
