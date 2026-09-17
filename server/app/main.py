@@ -4,6 +4,7 @@ from app.routes.auth import router as auth_router
 from app.routes.rooms import router as room_router
 from app.routes.connect import router as connect_router
 from app.routes.start_game import router as start_game_router
+from app.routes.match_result import router as match_result_router
 
 app = FastAPI()
 
@@ -24,6 +25,7 @@ app.include_router(auth_router)
 app.include_router(room_router)
 app.include_router(connect_router)
 app.include_router(start_game_router)
+app.include_router(match_result_router)
 
 @app.get("/")
 def read_root():
