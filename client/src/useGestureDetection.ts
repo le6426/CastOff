@@ -94,6 +94,26 @@ function isPalmFacingCamera(landmarks: NormalizedLandmark[]): boolean {
   return isChiralityA ? normalZ > 0 : normalZ < 0;
 }
 
+function isFistClosed(landmarks: NormalizedLandmark[]): boolean {
+  // All four fingers curled — same curl check style as fireball's
+  // curled-finger checks (tip not above its own knuckle).
+  const indexCurled = landmarks[8].y >= landmarks[5].y;
+  const middleCurled = landmarks[12].y >= landmarks[9].y;
+  const ringCurled = landmarks[16].y >= landmarks[13].y;
+  const pinkyCurled = landmarks[20].y >= landmarks[17].y;
+
+  // Thumb tucked in: thumb tip (4) pulled in close to the index knuckle (5),
+  // normalized by palm width so it works regardless of hand distance/size.
+  const palmWidth = distance(landmarks[5], landmarks[17]);
+  if (palmWidth === 0) return false;
+  const thumbToIndexKnuckle = distance(landmarks[4], landmarks[5]) / palmWidth;
+  const thumbTucked = thumbToIndexKnuckle < 0.4;
+
+  return (
+    indexCurled && middleCurled && ringCurled && pinkyCurled && thumbTucked
+  );
+}
+
 /**
  * Given a single hand's landmarks, return the ability name this gesture
  * corresponds to, or null if it doesn't match any recognized gesture.
@@ -105,6 +125,10 @@ function classifyGesture(landmarks: NormalizedLandmark[]): string | null {
 
   if (areFingersSpread(landmarks) && isPalmFacingCamera(landmarks)) {
     return "shield";
+  }
+
+  if (isFistClosed(landmarks)) {
+    return "crush";
   }
 
   return null;
@@ -202,6 +226,7 @@ export function useGestureDetection(
   // Shield's independent on/off track (no charge-up, just a grace period).
   const shieldActiveRef = useRef<boolean>(false);
   const lastSeenShieldTimeRef = useRef<number>(0);
+  const shieldLockedUntilRef = useRef<number>(0);
 
   // Set up the HandLandmarker once.
   useEffect(() => {
@@ -289,7 +314,7 @@ export function useGestureDetection(
         // shield gameplay logic is gated behind the game having started.
         if (gameStartedRef.current) {
           applyShieldTransition(detected, now);
-          applyFireballTransition(detected, now);
+          applyChargeTransition(detected, now);
         }
       }
 
@@ -307,6 +332,16 @@ export function useGestureDetection(
   }, []);
 
   function applyShieldTransition(detected: string | null, now: number) {
+    // Locked out after being crushed while shielding — force inactive
+    // regardless of what the gesture looks like right now.
+    if (now < shieldLockedUntilRef.current) {
+      if (shieldActiveRef.current) {
+        shieldActiveRef.current = false;
+        setState((prev) => ({ ...prev, shieldActive: false }));
+      }
+      return;
+    }
+
     if (detected === "shield") {
       lastSeenShieldTimeRef.current = now;
       if (!shieldActiveRef.current) {
@@ -327,22 +362,34 @@ export function useGestureDetection(
     // else: within grace period, stay active untouched.
   }
 
-  function applyFireballTransition(detected: string | null, now: number) {
-    // Fireball is the only ability that goes through the charge machine.
-    // Anything else (null, or "shield") is treated as "not fireball".
-    const isFireball = detected === "fireball";
+  // Forces shield off immediately and locks it out for 6 seconds. Called
+  // externally (from Room.tsx) the moment this player is hit by a crush
+  // attack while shielding.
+  function breakShield() {
+    shieldLockedUntilRef.current = performance.now() + 6000;
+    if (shieldActiveRef.current) {
+      shieldActiveRef.current = false;
+      setState((prev) => ({ ...prev, shieldActive: false }));
+    }
+  }
+
+  const CHARGEABLE_ABILITIES = ["fireball", "crush"];
+
+  function applyChargeTransition(detected: string | null, now: number) {
+    const isChargeable =
+      detected !== null && CHARGEABLE_ABILITIES.includes(detected);
     const chargingAbility = chargingAbilityRef.current;
 
     if (chargingAbility === null) {
       // idle -> charging
-      if (isFireball) {
-        chargingAbilityRef.current = "fireball";
+      if (isChargeable) {
+        chargingAbilityRef.current = detected;
         chargeStartTimeRef.current = now;
         lastSeenCorrectTimeRef.current = now;
         setState((prev) => ({
           ...prev,
           status: "charging",
-          ability: "fireball",
+          ability: detected,
           castId: castIdRef.current,
         }));
       }
@@ -350,19 +397,20 @@ export function useGestureDetection(
       return;
     }
 
-    // We're charging fireball.
-    if (isFireball) {
+    // We're charging `chargingAbility`.
+    if (detected === chargingAbility) {
       lastSeenCorrectTimeRef.current = now;
 
       if (now - chargeStartTimeRef.current >= CHARGE_DURATION_MS) {
         // charging -> confirmed
         castIdRef.current += 1;
+        const confirmedAbility = chargingAbility;
         chargingAbilityRef.current = null;
 
         setState((prev) => ({
           ...prev,
           status: "confirmed",
-          ability: "fireball",
+          ability: confirmedAbility,
           castId: castIdRef.current,
         }));
 
@@ -379,7 +427,8 @@ export function useGestureDetection(
       return;
     }
 
-    // detected is null or "shield" — check grace period.
+    // detected is null, or a different gesture (including the OTHER
+    // chargeable ability, or shield) — check grace period.
     if (now - lastSeenCorrectTimeRef.current > GRACE_PERIOD_MS) {
       // charging -> idle (cancelled)
       chargingAbilityRef.current = null;
@@ -388,5 +437,5 @@ export function useGestureDetection(
     // else: within grace period, stay charging untouched.
   }
 
-  return { ...state, indexTipRef, palmCenterRef };
+  return { ...state, indexTipRef, palmCenterRef, breakShield };
 }

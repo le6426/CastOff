@@ -83,6 +83,10 @@ const Room = () => {
     x: number;
     y: number;
   } | null>(null);
+  const [opponentCrushPos, setOpponentCrushPos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
 
   // My own live position — same data, but for rendering the icon on my
   // own tile locally, with no network round-trip needed.
@@ -94,7 +98,18 @@ const Room = () => {
     x: number;
     y: number;
   } | null>(null);
+  const [myCrushPos, setMyCrushPos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
   const [myChargeStartTime, setMyChargeStartTime] = useState<number>(0);
+
+  // Cracked-screen indicator — a truthy timestamp means "broken until this
+  // moment"; both cleared via matching setTimeout guards, same pattern as
+  // opponentCharge's success flash.
+  const [myShieldBrokenUntil, setMyShieldBrokenUntil] = useState<number>(0);
+  const [opponentShieldBrokenUntil, setOpponentShieldBrokenUntil] =
+    useState<number>(0);
 
   const [rematchVotes, setRematchVotes] = useState<{
     host: boolean;
@@ -136,6 +151,37 @@ const Room = () => {
     } else if (joinerHPRef.current <= 0) {
       setGameWinner(roomCreatorUserRef.current);
       setGameStarted(false);
+    }
+  };
+
+  // Applies damage to MY OWN HP (I'm the one being hit), broadcasts the
+  // new value so the opponent's bar stays in sync, and checks for a win.
+  const applyDamageToSelf = (amount: number) => {
+    const ws = wsRef.current;
+    if (isHost) {
+      setHostHP((prev) => {
+        const newHP = Math.max(0, prev - amount);
+        hostHPRef.current = newHP;
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(
+            JSON.stringify({ type: "hp_update", role: "host", hp: newHP }),
+          );
+        }
+        checkForWinner();
+        return newHP;
+      });
+    } else {
+      setJoinerHP((prev) => {
+        const newHP = Math.max(0, prev - amount);
+        joinerHPRef.current = newHP;
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(
+            JSON.stringify({ type: "hp_update", role: "joiner", hp: newHP }),
+          );
+        }
+        checkForWinner();
+        return newHP;
+      });
     }
   };
 
@@ -426,7 +472,7 @@ const Room = () => {
           startCountdown();
         }
 
-        // OPPONENT: successfully cast — apply damage (unless shielded), flash briefly
+        // OPPONENT: successfully cast — apply damage/shield-break, flash briefly
         else if (data.type === "cast_confirmed") {
           setOpponentCharge((prev) =>
             prev ? { ...prev, result: "success" } : prev,
@@ -435,36 +481,31 @@ const Room = () => {
           if (data.ability === "fireball") {
             const iAmShielded = gestureStateRef.current.shieldActive;
             if (!iAmShielded) {
-              // My HP goes down — I'm the one being hit
-              if (isHost) {
-                setHostHP((prev) => {
-                  const newHP = Math.max(0, prev - 20);
-                  hostHPRef.current = newHP;
-                  ws.send(
-                    JSON.stringify({
-                      type: "hp_update",
-                      role: "host",
-                      hp: newHP,
-                    }),
-                  );
-                  checkForWinner();
-                  return newHP;
-                });
-              } else {
-                setJoinerHP((prev) => {
-                  const newHP = Math.max(0, prev - 20);
-                  joinerHPRef.current = newHP;
-                  ws.send(
-                    JSON.stringify({
-                      type: "hp_update",
-                      role: "joiner",
-                      hp: newHP,
-                    }),
-                  );
-                  checkForWinner();
-                  return newHP;
-                });
-              }
+              applyDamageToSelf(20);
+            }
+          } else if (data.ability === "crush") {
+            const iAmShielded = gestureStateRef.current.shieldActive;
+            if (iAmShielded) {
+              // Shield absorbs the hit but breaks — no damage, but locked
+              // out for 6 seconds. gestureState.breakShield() safely
+              // mutates the hook's internal refs even if this closure's
+              // reference to it is from an earlier render.
+              gestureState.breakShield();
+              const breakUntil = Date.now() + 6000;
+              setMyShieldBrokenUntil(breakUntil);
+              ws.send(
+                JSON.stringify({
+                  type: "shield_broken",
+                  role: isHost ? "host" : "joiner",
+                }),
+              );
+              setTimeout(() => {
+                setMyShieldBrokenUntil((prev) =>
+                  prev === breakUntil ? 0 : prev,
+                );
+              }, 6000);
+            } else {
+              applyDamageToSelf(5);
             }
           }
 
@@ -473,6 +514,7 @@ const Room = () => {
               prev?.result === "success" ? null : prev,
             );
             setOpponentFireballPos(null);
+            setOpponentCrushPos(null);
           }, 500);
         }
 
@@ -492,12 +534,14 @@ const Room = () => {
         else if (data.type === "charging_started") {
           setOpponentCharge({ ability: data.ability, startTime: Date.now() });
           setOpponentFireballPos(null);
+          setOpponentCrushPos(null);
         }
 
         // OPPONENT: charge was cancelled/interrupted
         else if (data.type === "charging_cancelled") {
           setOpponentCharge(null);
           setOpponentFireballPos(null);
+          setOpponentCrushPos(null);
         }
 
         // OPPONENT: shield toggled
@@ -516,6 +560,23 @@ const Room = () => {
         // OPPONENT: live shield palm-center position while active
         else if (data.type === "shield_position") {
           setOpponentShieldPos({ x: data.x, y: data.y });
+        }
+
+        // OPPONENT: live crush fist-center position while charging
+        else if (data.type === "crush_position") {
+          setOpponentCrushPos({ x: data.x, y: data.y });
+        }
+
+        // OPPONENT: their shield just broke (I crushed them through it) —
+        // show cracks on their tile for 6 seconds.
+        else if (data.type === "shield_broken") {
+          const breakUntil = Date.now() + 6000;
+          setOpponentShieldBrokenUntil(breakUntil);
+          setTimeout(() => {
+            setOpponentShieldBrokenUntil((prev) =>
+              prev === breakUntil ? 0 : prev,
+            );
+          }, 6000);
         }
 
         // Rematch consensus
@@ -667,6 +728,29 @@ const Room = () => {
         }
       } else {
         setMyShieldPos(null);
+      }
+
+      if (
+        gestureState.status === "charging" &&
+        gestureState.ability === "crush"
+      ) {
+        // Reuse the same palm-center anchor as shield — a closed fist
+        // doesn't have a meaningful "fingertip", so the center of the
+        // hand is the natural anchor point.
+        const pos = gestureState.palmCenterRef.current;
+        setMyCrushPos(pos);
+        if (ws && ws.readyState === WebSocket.OPEN && pos) {
+          ws.send(
+            JSON.stringify({
+              type: "crush_position",
+              role: isHost ? "host" : "joiner",
+              x: pos.x,
+              y: pos.y,
+            }),
+          );
+        }
+      } else {
+        setMyCrushPos(null);
       }
     }, 80); // ~12 times/sec
 
@@ -921,6 +1005,27 @@ const Room = () => {
                   }}
                 />
               )}
+              {!isHost &&
+                opponentCharge?.ability === "crush" &&
+                opponentCrushPos && (
+                  <div
+                    key={opponentCharge.startTime}
+                    className="crush-icon"
+                    style={{
+                      left: `${(1 - opponentCrushPos.x) * 100}%`,
+                      top: `${opponentCrushPos.y * 100}%`,
+                    }}
+                  />
+                )}
+              {/* Cracks show on this tile if it represents whoever's shield
+                  just broke — this tile is the opponent when I'm the joiner,
+                  or myself when I'm the host. */}
+              {!isHost && opponentShieldBrokenUntil > 0 && (
+                <div className="shield-broken-overlay" />
+              )}
+              {isHost && myShieldBrokenUntil > 0 && (
+                <div className="shield-broken-overlay" />
+              )}
               {/* My own ability icons render here only when I am the host
                   (this is my own tile in that case). */}
               {isHost &&
@@ -945,6 +1050,19 @@ const Room = () => {
                   }}
                 />
               )}
+              {isHost &&
+                gestureState.status === "charging" &&
+                gestureState.ability === "crush" &&
+                myCrushPos && (
+                  <div
+                    key={myChargeStartTime}
+                    className="crush-icon"
+                    style={{
+                      left: `${(1 - myCrushPos.x) * 100}%`,
+                      top: `${myCrushPos.y * 100}%`,
+                    }}
+                  />
+                )}
               <div className="video-tile__hp">
                 <div className="video-tile__hp-bar-bg">
                   <div
@@ -999,6 +1117,27 @@ const Room = () => {
                   }}
                 />
               )}
+              {isHost &&
+                opponentCharge?.ability === "crush" &&
+                opponentCrushPos && (
+                  <div
+                    key={opponentCharge.startTime}
+                    className="crush-icon"
+                    style={{
+                      left: `${(1 - opponentCrushPos.x) * 100}%`,
+                      top: `${opponentCrushPos.y * 100}%`,
+                    }}
+                  />
+                )}
+              {/* Cracks show on this tile if it represents whoever's shield
+                  just broke — this tile is the opponent when I'm the host,
+                  or myself when I'm the joiner. */}
+              {isHost && opponentShieldBrokenUntil > 0 && (
+                <div className="shield-broken-overlay" />
+              )}
+              {!isHost && myShieldBrokenUntil > 0 && (
+                <div className="shield-broken-overlay" />
+              )}
               {/* My own ability icons render here only when I am the joiner
                   (this is my own tile in that case). */}
               {!isHost &&
@@ -1023,6 +1162,19 @@ const Room = () => {
                   }}
                 />
               )}
+              {!isHost &&
+                gestureState.status === "charging" &&
+                gestureState.ability === "crush" &&
+                myCrushPos && (
+                  <div
+                    key={myChargeStartTime}
+                    className="crush-icon"
+                    style={{
+                      left: `${(1 - myCrushPos.x) * 100}%`,
+                      top: `${myCrushPos.y * 100}%`,
+                    }}
+                  />
+                )}
               <div className="video-tile__hp">
                 <div className="video-tile__hp-bar-bg">
                   <div
