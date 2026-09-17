@@ -145,12 +145,31 @@ const Room = () => {
   }, [roomJoinerUser]);
 
   const checkForWinner = () => {
+    let winner: string | null = null;
+
     if (hostHPRef.current <= 0) {
-      setGameWinner(roomJoinerUserRef.current);
+      winner = roomJoinerUserRef.current;
+      setGameWinner(winner);
       setGameStarted(false);
     } else if (joinerHPRef.current <= 0) {
-      setGameWinner(roomCreatorUserRef.current);
+      winner = roomCreatorUserRef.current;
+      setGameWinner(winner);
       setGameStarted(false);
+    }
+
+    // Only the host reports the result — both clients independently run
+    // this same check, so reporting from both would double-count the
+    // Elo change. The backend also verifies the caller is actually the
+    // room's host, so this isn't just a client-side trust assumption.
+    if (winner && isHost) {
+      fetch(`${apiBaseUrl}/report_match_result/${roomID}`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ winner_username: winner }),
+      }).catch((err) => {
+        console.error("Failed to report match result:", err);
+      });
     }
   };
 

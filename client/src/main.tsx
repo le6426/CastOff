@@ -10,6 +10,7 @@ import Login from "./Login.tsx";
 import NotFoundPage from "./NotFoundPage.tsx";
 import Nav from "./components/Navbar.tsx";
 import Room from "./Room.tsx";
+import Leaderboard from "./Leaderboard.tsx";
 
 interface SessionContextType {
   loggedIn: boolean;
@@ -55,6 +56,10 @@ const router = createBrowserRouter([
       {
         path: "/login",
         element: <Login />,
+      },
+      {
+        path: "/leaderboard",
+        element: <Leaderboard />,
       },
     ],
   },
