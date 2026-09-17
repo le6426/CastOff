@@ -95,25 +95,15 @@ function isPalmFacingCamera(landmarks: NormalizedLandmark[]): boolean {
 }
 
 function isFistClosed(landmarks: NormalizedLandmark[]): boolean {
+  // All four fingers curled — same curl check style as fireball's
+  // curled-finger checks (tip not above its own knuckle).
+  // Thumb position is intentionally not checked — testing showed no
+  // reliable, consistent threshold for "tucked" vs "extended" across
+  // different cameras/setups, so curl-only detection is used instead.
   const indexCurled = landmarks[8].y >= landmarks[5].y;
   const middleCurled = landmarks[12].y >= landmarks[9].y;
   const ringCurled = landmarks[16].y >= landmarks[13].y;
   const pinkyCurled = landmarks[20].y >= landmarks[17].y;
-
-  const palmWidth = distance(landmarks[5], landmarks[17]);
-  if (palmWidth === 0) return false;
-
-  const thumbToIndexKnuckle = distance(landmarks[4], landmarks[5]) / palmWidth;
-  const thumbToWrist = distance(landmarks[4], landmarks[0]) / palmWidth;
-  const thumbToMiddleMcp = distance(landmarks[4], landmarks[9]) / palmWidth;
-  const thumbToPinkyMcp = distance(landmarks[4], landmarks[17]) / palmWidth;
-
-  console.log("thumb distances:", {
-    thumbToIndexKnuckle: thumbToIndexKnuckle.toFixed(3),
-    thumbToWrist: thumbToWrist.toFixed(3),
-    thumbToMiddleMcp: thumbToMiddleMcp.toFixed(3),
-    thumbToPinkyMcp: thumbToPinkyMcp.toFixed(3),
-  });
 
   return indexCurled && middleCurled && ringCurled && pinkyCurled;
 }
