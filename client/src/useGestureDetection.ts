@@ -95,19 +95,25 @@ function isPalmFacingCamera(landmarks: NormalizedLandmark[]): boolean {
 }
 
 function isFistClosed(landmarks: NormalizedLandmark[]): boolean {
-  // All four fingers curled — same curl check style as fireball's
-  // curled-finger checks (tip not above its own knuckle).
   const indexCurled = landmarks[8].y >= landmarks[5].y;
   const middleCurled = landmarks[12].y >= landmarks[9].y;
   const ringCurled = landmarks[16].y >= landmarks[13].y;
   const pinkyCurled = landmarks[20].y >= landmarks[17].y;
 
-  // Thumb tucked in: thumb tip (4) pulled in close to the index knuckle (5),
-  // normalized by palm width so it works regardless of hand distance/size.
   const palmWidth = distance(landmarks[5], landmarks[17]);
   if (palmWidth === 0) return false;
   const thumbToIndexKnuckle = distance(landmarks[4], landmarks[5]) / palmWidth;
   const thumbTucked = thumbToIndexKnuckle < 0.4;
+
+  // TEMP debug
+  console.log("fist check:", {
+    indexCurled,
+    middleCurled,
+    ringCurled,
+    pinkyCurled,
+    thumbToIndexKnuckle: thumbToIndexKnuckle.toFixed(3),
+    thumbTucked,
+  });
 
   return (
     indexCurled && middleCurled && ringCurled && pinkyCurled && thumbTucked
