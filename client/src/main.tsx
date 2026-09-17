@@ -1,3 +1,4 @@
+// main.tsx
 import { StrictMode, useState, useEffect, createContext } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { createRoot } from "react-dom/client";
@@ -17,7 +18,7 @@ interface SessionContextType {
   setLoggedIn: Dispatch<SetStateAction<boolean>>;
   currentUser: string | null;
   setCurrentUser: Dispatch<SetStateAction<string | null>>;
-  isAuthLoading: boolean; // Add this
+  isAuthLoading: boolean;
 }
 
 export const SessionContext = createContext<SessionContextType | undefined>(
