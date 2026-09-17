@@ -70,10 +70,8 @@ function App() {
                 </Link>
               </>
             )}
-            <button onClick={() => navigate("/leaderboard")}>
-              Leaderboard
-            </button>
           </div>
+          <button onClick={() => navigate("/leaderboard")}>Leaderboard</button>
         </div>
       </section>
 
