@@ -38,9 +38,11 @@ const Leaderboard = () => {
     <div className="leaderboard">
       <div className="leaderboard__header">
         <h1>Leaderboard</h1>
-        <Link to="/" className="btn-secondary">
-          Back to Home
-        </Link>
+        <button>
+          <Link to="/" className="btn-secondary">
+            Back to Home
+          </Link>
+        </button>
       </div>
 
       {isLoading && <p className="leaderboard__status">Loading...</p>}
