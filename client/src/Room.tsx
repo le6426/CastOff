@@ -579,6 +579,10 @@ const Room = () => {
           }, 6000);
         }
 
+        // Keepalive heartbeat — no-op, just needs to not fall through unhandled
+        else if (data.type === "ping") {
+        }
+
         // Rematch consensus
         else if (data.type === "rematch_ready") {
           setRematchVotes((prev) => ({ ...prev, [data.role]: true }));
@@ -761,6 +765,21 @@ const Room = () => {
     gestureState.shieldActive,
     isHost,
   ]);
+
+  // Heartbeat — keeps the WebSocket alive through idle-timeout proxies.
+  // Sent unconditionally on an interval regardless of game state, since
+  // the disconnect was observed during quiet periods (waiting room,
+  // between casts) where no other message would naturally go out.
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      const ws = wsRef.current;
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "ping" }));
+      }
+    }, 20000);
+
+    return () => clearInterval(intervalId);
+  }, []);
 
   // Rematch consensus: once both players have voted, restart symmetrically
   useEffect(() => {
