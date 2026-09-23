@@ -1,6 +1,6 @@
 # CastOff
 
-CastOff is a real-time, browser-based dueling game. Two players connect over video, then cast spells using hand gestures tracked live through their webcams. No controllers, no keyboard, just your hand.
+CastOff is a real-time, browser-based dueling game. Two players connect over video, then cast spells using hand gestures tracked live through their webcams.
 
 ## How it works
 
